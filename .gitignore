@@ -1,0 +1,60 @@
+# ==============================================================================
+# Claude Code AI Software Engineering Framework - .gitignore
+# ==============================================================================
+
+
+# Editors & IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*~
+*.bak
+*.sublime-project
+*.sublime-workspace
+
+# Environment Variables & Sensitive Credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+
+# Logs & Temporary Files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Claude Code / AI Local Caches
+# Note: Preserve .claude/agents, .claude/rules, .claude/skills
+.claude/*.local
+.claude/*.local.json
+.claude/history/
+.claude/worktrees/
+
+# Common Language & Build Artifacts (for projects developed using this framework)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+
+dist/
+build/
+target/
+
