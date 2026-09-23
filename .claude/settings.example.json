@@ -9,5 +9,37 @@
         "CLAUDE_CODE_SUBAGENT_MODEL": "deepseek-flash",
         "CLAUDE_CODE_EFFORT_LEVEL": "max",
         "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "786432"
+    },
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": ".claude/hooks/check-artifact-producer.sh"
+                    }
+                ]
+            },
+            {
+                "matcher": "Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": ".claude/hooks/check-artifact-producer.sh"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": ".claude/hooks/check-closure.sh"
+                    }
+                ]
+            }
+        ]
     }
 }

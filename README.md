@@ -54,9 +54,11 @@ Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 W
 ### 1. 引入框架
 将本仓库文件复制到目标项目根目录中，保留核心编排规则及角色配置。
 
-### 2. 准备项目输入
-- 将已有产品资料、需求文档、设计图或规范放入 [`input/`](input/README.md)（团队规范统一放入 [`input/standards/`](input/standards/README.md)）。
-- 若项目包含存量代码，可直接保留在根目录原有位置，无需搬迁。
+### 2. 准备项目输入 (极简上手)
+- **只有一句话想法**：直接在 `input/requirements.md` 写下一句话需求，或启动时直接发给 Claude；
+- **有 PRD / 设计图 / API 契约**：放入 [`input/`](input/README.md)（如 [`input/requirements/`](input/requirements/)、[`input/api/`](input/api/)，**不知道放哪直接丢进 `input/` 根目录**，框架会自动解析）；
+- **接管存量代码**：代码直接保留在当前根目录，无需迁移移动。
+详见 [input/ 3秒极速放置指南](input/README.md#3-秒极速放置指南我该把资料放哪)。
 
 ### 3. 配置项目基线
 编辑 [`config/project.md`](config/project.md)，配置基础参数（未确定项保留 `auto`）：

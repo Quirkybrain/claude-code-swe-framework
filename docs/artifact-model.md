@@ -14,6 +14,7 @@ Every managed Artifact must expose or register the following fields.
 |---|---|
 | **Artifact ID** | Stable unique identifier, such as `REQ-001`, `ADR-003`, or `TEST-052` |
 | **Artifact Type** | Semantic type based on content, such as Requirement, Architecture, API Contract, Code, or Test Report |
+| **Producer** | Generating entity: `agent:<agent-name>` or `orchestrator:main-session \| Deviation: <reason>`. Required for process compliance |
 | **Status** | Current lifecycle status from the canonical Artifact states |
 | **Source** | Original asset paths, user decisions, code locations, or upstream evidence from which it was derived |
 | **Owner** | Role or Agent responsible for the current revision; ownership does not grant final approval |

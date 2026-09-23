@@ -126,26 +126,43 @@ Infer only low-risk choices supported by context or strong convention.
 Persist important answers as Requirements, Constraints, Decisions, or ADRs.
 Persist significant assumptions and do not ask the same resolved question again.
 
-## Agent Pool Selection
+## Agent Pool Selection & Delegation Principle
 
-Select an Agent by required expertise, context isolation, tools, write permission, and expected Artifact.
-Logical Role does not imply one Agent.
-Do not create or follow a fixed Agent chain.
-Keep workflow orchestration in the main session; specialist Agents do not recursively orchestrate by default. Parallelize only independent work.
-Never allow concurrent writes to the same working tree or overlapping files.
-Use only Agents and Skills that actually exist; until a specialist is installed, perform necessary in-scope work in the main session.
+The main session acts strictly as the **Stage Orchestrator**. Its responsibilities are:
+1. Direct user interaction and Clarification Gates;
+2. Cross-artifact arbitration, dependency evaluation, and stage-gate decisions;
+3. Checkpoint and state persistence;
+4. Delegating specialized tasks via the native `Agent` tool (`Agent(subagent_type="...", prompt="...")`).
 
-## Artifact Handoff
+**Default Delegation (No "On-Demand" Escape Hatch)**:
+Delegation is a structural constraint, not an optional request. In `STANDARD` and `STRICT` workflows, the main session must NOT author specialist deliverables directly. The orchestrator MUST delegate to specialized Subagents:
+- Project Intake & Requirements: `asset-analyst` / `requirements-analyst`
+- Architecture, Detailed Design & ADRs: `solution-architect`
+- Models, State Machines & UML: `system-modeler`
+- Task Decomposition & Delivery Path: `delivery-planner`
+- Code Implementation & Bug Fixes: `implementation-engineer`
+- Test Engineering & Verification: `test-engineer`
+- Independent Review: `quality-reviewer` (the author cannot approve its own work)
+- Release Packaging & Deployment: `release-engineer`
+- User & Technical Documentation: `technical-writer`
 
-Every delegation must name:
+**Procedural Deviations**:
+Bypassing delegation for perceived cost, serial simplicity, or convenience is strictly prohibited in `STANDARD` and `STRICT` modes. If an artifact is authored directly by the main session, it constitutes a **procedural deviation** and MUST be explicitly recorded in the artifact's `Producer` metadata (e.g., `Producer: orchestrator:main-session | Deviation: <concrete technical justification>`).
+In `LIGHTWEIGHT` workflows, the main session may execute directly, provided proportionate build, test, and verification evidence is recorded.
 
-- objective and target Artifact;
-- input Artifact paths and versions;
-- relevant Constraints, assumptions, and allowed write scope;
-- Definition of Done and required Gate;
-- expected output path and validation evidence.
+## Artifact Handoff & Provenance
 
-Persist reusable results before treating a handoff as complete.
+Every delegation must specify:
+- objective and target Artifact path;
+- input Artifact paths, versions, and relevant constraints;
+- allowed write scope and Definition of Done;
+- required Gate and validation evidence.
+
+**Provenance Requirement**:
+Every managed Artifact MUST declare its `Producer` in its metadata header:
+- Standard: `Producer: agent:<agent-name>`
+- Deviation: `Producer: orchestrator:main-session | Deviation: <reason>`
+Artifacts lacking valid `Producer` declarations or containing unjustified deviations fail Artifact Validation Gate and cannot enter `VALID` status.
 
 ## Testing Requirement
 
