@@ -11,3 +11,5 @@
 - The implementation author must not provide the final independent Review PASS for the same change.
 - Review-driven edits invalidate affected test and review evidence and require proportionate revalidation.
 - A PASS must cite current revision-specific evidence; test success alone does not satisfy a broader Definition of Done.
+- Stage Gate evaluation must verify process compliance: all deliverables must possess valid 'Producer' metadata, reviews must be performed by independent roles ('agent:quality-reviewer'), and any main-session authored artifacts must have recorded, valid deviation rationales.
+
