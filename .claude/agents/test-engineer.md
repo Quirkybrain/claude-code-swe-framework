@@ -47,6 +47,7 @@ As needed:
 - Select test layers based on change risk and impact.
 - Verify positive, negative, boundary, error, and recovery behavior where relevant.
 - Keep tests traceable to Requirements, Contracts, risks, or regressions.
+- Determine expected results before consulting implementation output when feasible; for a Golden change, cite the pinned Requirement/Contract or independently checked oracle that justifies it.
 - Distinguish consumer Contract, provider Contract, and integration evidence.
 - Ensure results correspond to the current code/configuration revision.
 - Preserve failure output and avoid false PASS from skipped/flaky tests.

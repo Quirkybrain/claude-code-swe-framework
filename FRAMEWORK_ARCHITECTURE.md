@@ -151,7 +151,8 @@ project-root/
 │   │   ├── debug-specialist.md
 │   │   ├── system-verifier.md
 │   │   ├── technical-writer.md
-│   │   └── release-engineer.md
+│   │   ├── release-engineer.md
+│   │   └── repository-manager.md
 │   ├── skills/
 │   │   ├── project-intake/SKILL.md
 │   │   ├── artifact-validation/SKILL.md
@@ -286,7 +287,7 @@ Stage 不是强制顺序游标。入口由用户已有 Artifact 和目标共同�
 
 ## 5. Agent Pool
 
-主 Claude 不定义为 `.claude/agents/` 中的 Agent；它是唯一 Stage Orchestrator。当前 14 个核心 Agent 是能力池，不是调用链。Phase 2 将跨层 Root Cause Analysis 从原有职责集中拆为独立 `debug-specialist`，以满足失败升级时的只读调查边界；其余 Phase 0 分组保持不变。
+主 Claude 不定义为 `.claude/agents/` 中的 Agent；它是唯一 Stage Orchestrator。当前 15 个 Agent 是能力池，不是调用链。Phase 2 增加跨层诊断的 `debug-specialist`；仓库治理增加跨阶段的 `repository-manager`，负责 Git 基线和提交状态，不增加生命周期 Stage；其余 Phase 0 分组保持不变。
 
 | Agent | 聚合职责 | 典型输入 / 输出 | 工具与写权限意图 | 使用理由 |
 |---|---|---|---|---|
@@ -304,6 +305,7 @@ Stage 不是强制顺序游标。入口由用户已有 Artifact 和目标共同�
 | `system-verifier` | Traceability、一致性、System Verification、Acceptance | 全链路 Artifacts → Verification/Acceptance Report | 只读产品与代码；写报告 | 工程正确性与用户价值验证需独立于实现 |
 | `technical-writer` | 用户/开发/运维文档 | Valid Artifacts/Code → Documentation | 只写文档 | 文档面向读者，避免与发布权限混合 |
 | `release-engineer` | Release/Deployment 计划、可发布性验证和受控执行 | Stable Build、Release Criteria → Release Evidence | 构建/部署工具；外部副作用需 Gate | 发布具有高副作用和专门权限边界 |
+| `repository-manager` | Git 基线、定向提交、仓库状态与快照引用核对 | Task/Checkpoint、适用的 `input/` Git 规范 → Commit/Status Evidence | Git 操作；不修改产品语义 | 使提交与恢复证据成为可检查的跨阶段职责 |
 
 表中的“写权限”在纯 Markdown V1 中首先是行为约束。仅靠 Agent prompt 无法强制路径级写隔离；需要确定性 enforcement 时属于 Hook/权限系统的后续能力。
 
@@ -802,7 +804,7 @@ Claude Code `2.1.278` 还支持官方文档列出的可选字段，但 Phase 3 �
 
 - [x] 完整阅读 `design.md`，并记录其 EOF 截断事实。
 - [x] 确认这是 Claude Code Framework Template，不是 Runtime 软件。
-- [x] Phase 0 将 26 个 Logical Roles 合并为 13 个职责集；Phase 2 为失败升级增加独立 `debug-specialist`，当前共 14 个核心 Agent。
+- [x] Phase 0 将 26 个 Logical Roles 合并为 13 个职责集；Phase 2 为失败升级增加独立 `debug-specialist`；仓库治理增加 `repository-manager`，当前共 15 个 Agent。
 - [x] 明确分离 Agent、Skill、Rule、Artifact 与 Orchestrator。
 - [x] 未设计固定 Agent Chain。
 - [x] Artifact Dependency 是主要流程连接机制。

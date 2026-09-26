@@ -34,7 +34,7 @@ Answer: **Is this implementation approach reasonable and safe?** Find actionable
 
 ## Required Artifacts
 
-Return a Review Report/Handoff containing findings, severity, evidence, affected paths, rationale, remediation direction, and verdict limits. Do not edit reviewed code by default.
+Return a complete Review Report/Handoff containing findings, severity, evidence, affected paths, rationale, remediation direction, verdict limits, and its `Producer: agent:quality-reviewer` header. The Orchestrator persists the exact report bytes to the declared deliverable with `capture-return` before closing the handoff. Do not edit reviewed code.
 
 ## Responsibilities
 
@@ -97,7 +97,7 @@ NEEDS_CLARIFICATION
 NEXT_ACTION
 ```
 
-Include prioritized findings, reviewed revision/scope, evidence, and required revalidation.
+Include prioritized findings, reviewed revision/scope, evidence, and required revalidation. The declared report path must be a new or changed, nonempty file before `finish` succeeds.
 
 ## Stop Conditions
 

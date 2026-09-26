@@ -28,6 +28,7 @@ Run at session recovery, after `PAUSED_AT_STAGE`, after a handoff/context reset,
 
 1. Read Project Configuration, latest Checkpoint, linked Artifacts, State, and target.
 2. Inspect current repository revision, branch/worktree, dirty state, and relevant file changes.
+   Run `python3 scripts/swe_guard.py status` to identify active handoffs across worktrees, local snapshot refs, HEAD, and dirty paths. Compare saved content before any restore; close interrupted handoffs as failed before re-dispatch. Check the applicable `input/` Git policy and establish a committed baseline before further changes.
 3. Compare repository/Artifact/Component revisions with the Checkpoint.
 4. Detect added, removed, modified, or externally changed assets since the snapshot.
 5. Reopen unresolved Clarifications, assumptions, decisions, risks, failures, and blockers.

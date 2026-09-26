@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`design.md` defines 26 Logical Roles. A Logical Role is a software-engineering responsibility, not a requirement to create one Claude Agent. Phase 0 grouped those roles into 13 cohesive responsibility clusters based on context isolation, tools, write permission, frequency, parallelization value, and Skill reuse. Phase 2 keeps those clusters and adds one cross-cutting `debug-specialist` for independent failure diagnosis, producing a 14-Agent pool.
+`design.md` defines 26 Logical Roles. A Logical Role is a software-engineering responsibility, not a requirement to create one Claude Agent. Phase 0 grouped those roles into 13 cohesive responsibility clusters. Phase 2 added the cross-cutting `debug-specialist`; repository governance adds the cross-cutting `repository-manager`. The current 15-Agent pool remains a capability pool rather than a chain.
 
 The implemented definitions are under `.claude/agents/`. This map explains their boundaries; it is not an invocation chain.
 
@@ -30,6 +30,7 @@ Specialist Agents produce or validate bounded Artifacts. They do not form a fixe
 | `system-verifier` | End-to-end traceability, system verification, acceptance analysis | Verification and acceptance reports |
 | `technical-writer` | User, developer, operations, and maintenance documentation | Documentation only |
 | `release-engineer` | Release readiness, deployment planning, controlled release evidence | Release assets; external effects remain gated |
+| `repository-manager` | Git baseline, scoped commits, worktree/status and snapshot-ref evidence | Repository operations and status record; no product changes or Gate verdict |
 
 The frontmatter tools implement coarse least privilege. More granular path boundaries remain behavioral intent; deterministic path enforcement requires permissions or Hooks and is not claimed by Markdown V1.
 
@@ -65,10 +66,11 @@ The frontmatter tools implement coarse least privilege. More granular path bound
 | Maintenance Role | `implementation-engineer` | Orchestrator first routes through Change Impact Analysis |
 
 `debug-specialist` is not a one-to-one mapping of an additional lifecycle role. It is a cross-cutting diagnostic boundary used when any mapped role encounters ambiguous, repeated, or cross-layer failure.
+`repository-manager` is likewise cross-cutting; it owns Git mechanics at change boundaries without adding a lifecycle Stage or replacing the Orchestrator.
 
 ## Selection Rules
 
-Select an Agent only when its isolated context, expertise, or permission boundary improves the work. A small task may stay in the main session. One Agent may serve several lifecycle stages, and one stage may require several Agents when Artifact dependencies permit it.
+Select only the Agents needed for the target under `CLAUDE.md`'s delegation rule. A small task may stay in the main session only in LIGHTWEIGHT mode or with a recorded procedural deviation. One Agent may serve several lifecycle stages, and one stage may require several Agents when Artifact dependencies permit it. `repository-manager` is used at mutation/commit boundaries, not polled continuously.
 
 Read-only independent analysis can run in parallel. Parallel writes require non-overlapping Components, stable Contracts, isolated workspaces, and an explicit integration owner.
 

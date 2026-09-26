@@ -10,4 +10,5 @@
 - Never expose or commit secrets; inspect and reproduce sensitive data only to the minimum extent required.
 - Production, deployment, destructive, or other high-impact external actions require explicit authority and the applicable Gate.
 - Do not hide failures, weaken validation, or classify incomplete work as done.
+- For first delivery of a runnable project, include a current project-root README with verified build/run/test commands before declaring code delivery complete; the `technical-writer` owns this bounded document in STANDARD/STRICT work.
 - Language- and framework-specific style belongs in Project Constraints from `input/standards/`, not in this Framework Rule.

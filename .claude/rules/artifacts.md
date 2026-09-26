@@ -14,5 +14,6 @@
 - Artifact ownership means responsibility for the revision, not authority to self-approve it.
 - Validation must address completeness, consistency, correctness, freshness, dependency compatibility, target fitness, and producer compliance.
 - Handoffs must identify Artifact paths/IDs and revisions, input dependencies, constraints, assumptions, allowed scope, DoD, Gate, and validation evidence.
+- Cite exact source paths, revisions/hashes, and unique anchors for normative claims. Do not copy a source clause into multiple handoffs or treat an unverified paraphrase as authority. Use `scripts/swe_guard.py` for mechanical path/hash checks before specialist dispatch.
 - Maintain bidirectional, revision-aware traceability from Requirement through design/architecture, Contract/Component, task, code, and test at depth proportionate to risk.
 - Never invent a Requirement to justify orphan code; record the missing rationale or inferred intent explicitly.

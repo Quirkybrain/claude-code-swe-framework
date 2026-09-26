@@ -15,4 +15,6 @@ Constraints: [额外约束；没有则填写 none]
 
 执行 Change Impact 和必要的 Clarification，只计算此任务的 Minimum Necessary Path。按任务类型选择所需 Agent/Skill：代码修改后必须 Build、Test、Verify，并按风险完成 Review/Gate；纯 Review 或 Testing 任务保持其职责边界。
 
+执行修改、修 Bug、新功能或重构前，先确认 Git 基线提交及计划写入范围的状态；检查 `input/` 中适用的公司 Git 提交时机和格式，缺省时使用 `repository-manager` 的默认规则。委派专业 Agent 时，按 [`docs/operational-guards.md`](docs/operational-guards.md) 创建、固定并校验短交接单；只有聊天输入时先保存用户原文，要求实际落盘的交付物，不要转抄规范正文。修改前序工件或送审代码时，先保存可验证的 Git 快照。首次交付可运行项目代码时，同步交付项目 README 并验证其中命令。
+
 只修改授权范围，不做无关重构。记录结果、验证证据、受影响状态和下一动作；达到本任务目标后更新 Checkpoint 并停止。

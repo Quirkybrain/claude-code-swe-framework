@@ -1,15 +1,30 @@
 # Claude Code AI Software Engineering Framework
 
+**当前版本：V1.1.0（交接与仓库治理增强版）**
+
 一套面向真实工程场景的 **Claude Code 软件工程 (SWE) 落地框架**。通过结构化 Markdown 编排、多角色智能体协同、自适应阶段关卡与持久化状态机，帮助开发者在 Claude Code 中高效推进复杂软件研发。
 
 Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 Workflow Server、数据库或后台守护进程，零外部服务依赖，由纯工程化载体驱动。
 
 ---
 
+## V1.1.0 更新说明
+
+这是基于 V1 流程的新版本，保留 **Artifact → Agent → Gate → Checkpoint** 的阶段与门禁设计。本次更新将交接、恢复与仓库管理中的关键约束落实为可执行检查：
+
+- **交接内容固定**：聊天需求可先保存为文件，交接单引用文件路径和锚点；派发前校验输入哈希，减少内容搬运造成的漂移。
+- **快照与实际改动核对**：修改已存在的文件及送审前要求保存本地 Git 快照；任务结束时核对可观测的改动范围、前序文件的原始快照和交付物。
+- **并行写入隔离**：同一 worktree 同时只允许一个活动任务；不同 worktree 可在声明的读写范围互不冲突时并行。
+- **提交证据校验**：仓库管理 Agent 区分状态查询与提交任务；提交任务核验 HEAD、提交路径、目标路径状态及默认提交说明。`input/` 中适用的公司规则优先。
+
+操作示例与检查边界见 [交接、快照与上下文成本检查](docs/operational-guards.md)。
+
+---
+
 ## 核心特性
 
 - **自适应工程路径 (Minimum Necessary Path)**：按需裁剪，不拘泥于固定瀑布流程。从单点 Bug 修复到高风险架构演进，依据任务复杂度自适应推导最简必要路径。
-- **专业工程角色矩阵 (14 Specialist Agents)**：覆盖需求分析、系统建模、架构设计、计划排期、编码实现、测试验证、质量评审及发布等全生命周期角色。
+- **专业工程角色矩阵 (15 Specialist Agents)**：覆盖需求分析、系统建模、架构设计、计划排期、编码实现、测试验证、质量评审、仓库管理及发布等职责。
 - **双向工程支持 (Forward & Reverse Engineering)**：既支持由产品概念正向推演架构与编码，也支持对存量代码进行逆向分析、资产盘点与设计重构。
 - **状态持久化与断点续传 (Checkpoint & Resume)**：工程决策、演进状态与阶段证据持久化至 Markdown，任意会话中断后均可平滑恢复上下文。
 - **多级质量门禁 (Quality Gates)**：在关键交付节点设立澄清关卡、架构评审与集成验证，严控技术债务与幻觉风险。
@@ -33,7 +48,8 @@ Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 W
 .
 ├── CLAUDE.md                   # 框架总控编排规则与工程守则
 ├── .claude/
-│   ├── agents/                 # 14 个专业工程角色定义
+│   ├── agents/                 # 15 个专业工程角色定义
+│   ├── hooks/                  # 交接与写入范围的工具调用前检查
 │   ├── rules/                  # 架构、代码、质量、变更等持久化工程约束
 │   └── skills/                 # 需求导入、路径推导、代码评审等工程技能集
 ├── config/
@@ -44,6 +60,7 @@ Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 W
 ├── state/                      # 状态工作账本与 Checkpoint 断点快照
 ├── output/                     # 最终交付导出的打包产物
 ├── docs/                       # 框架模型与机制说明文档
+├── scripts/                    # 交接校验与本地 Git 快照辅助工具
 └── *.md                        # 各典型工作流入口交互模板
 ```
 
@@ -52,7 +69,7 @@ Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 W
 ## 快速开始
 
 ### 1. 引入框架
-将本仓库文件复制到目标项目根目录中，保留核心编排规则及角色配置。
+将本仓库文件复制到目标项目的 Git 仓库根目录中，保留核心编排规则、角色配置、`.claude/hooks/` 和 `scripts/`，并将 `.claude/settings.json` 的 Hook 配置合并到项目设置。新目录先执行 `git init` 并创建一次基线提交；交接校验与快照工具还需要 Python 3。
 
 ### 2. 准备项目输入 (极简上手)
 - **只有一句话想法**：直接在 `input/requirements.md` 写下一句话需求，或启动时直接发给 Claude；
@@ -124,6 +141,12 @@ claude
 
 ---
 
+### 4. 交接校验与断点保护
+
+原有阶段与门禁保持不变。短交接单可引用落盘的聊天需求；脚本在派发与收尾时核对快照、实际改动范围、并行冲突及必需交付物。仓库管理 Agent 在变更边界核对状态并执行定向提交，默认提交格式为 `<type>(<scope>): <summary>`，`input/` 中适用的公司提交规则优先。首次交付可运行项目代码时，还需有命令经过验证的项目 README。操作步骤与边界见 [Operational Guards](docs/operational-guards.md)。
+
+---
+
 ## 进阶参考与文档
 
 - [框架总体概览 (Framework Overview)](docs/framework-overview.md)
@@ -133,12 +156,13 @@ claude
 - [智能体角色地图 (Agent Role Map)](docs/agent-role-map.md)
 - [框架完整架构设计 (Framework Architecture)](FRAMEWORK_ARCHITECTURE.md)
 - [未来运行时规划 (Future Runtime Boundary)](docs/future-runtime.md)
+- [交接、快照与上下文成本检查 (Operational Guards)](docs/operational-guards.md)
 
 ---
 
 ## 设计边界
 
-当前 V1 版本依托 Claude Code 与结构化 Markdown 规范，实现了轻量化的角色协同、产物传递与质量把控。关于确定性状态事务、自动化并发合并及外部 CI/CD 插件化集成（Hook / MCP）等扩展能力的演进规划，详见 [`docs/future-runtime.md`](docs/future-runtime.md)。
+V1.1.0 仍属于 V1 架构：依托 Claude Code 与结构化 Markdown 实现角色协同、产物传递与质量把控。交接 Hook 和本地快照工具覆盖明确的机械检查；任意 shell 命令跨 worktree 写入仍需进程级隔离才能彻底阻止。确定性状态事务、自动化并发合并及外部系统同步等仍属于未来能力，见 [`docs/future-runtime.md`](docs/future-runtime.md)。
 
 ---
 

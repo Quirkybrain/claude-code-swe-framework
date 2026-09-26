@@ -10,6 +10,7 @@ input/standards/
 ├── testing.md
 ├── security.md
 ├── api.md
+├── git.md
 └── documentation.md
 ```
 
@@ -24,5 +25,7 @@ input/standards/
 - 与其他标准冲突时的处理原则。
 
 Project Intake 会发现这些来源，分析/架构责任会将目标相关内容统一整理为带来源引用的 Project Constraints。其他 Agent 应使用这些已整理约束，而不是分别重新解释原始规范。
+
+如公司有 Git 提交要求，可在此放入适用文件，写明何时提交（例如修改前、评审前、合并前）及 commit 消息格式、分支规则和必需检查。框架的 `repository-manager` 先遵守这些明确规则；缺失的部分才使用默认规则，不需要为了示例改名。
 
 不要放入密码、Token、私钥、生产凭据、真实敏感数据或不应进入仓库的内部材料。无法共享的标准可以在 `config/project.md` 中记录其摘要、访问限制或外部引用。

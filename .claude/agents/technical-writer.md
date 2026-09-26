@@ -36,6 +36,7 @@ Produce accurate, audience-appropriate documentation grounded in validated Artif
 Only requested/necessary documentation, such as:
 
 - README/getting-started and user guidance.
+- A minimal project-root README at first runnable code delivery, before the later full documentation Stage, when the code Gate needs usable build/run/test instructions.
 - Developer architecture and contribution documentation.
 - API/reference documentation.
 - Operations, deployment, troubleshooting, and maintenance guides.

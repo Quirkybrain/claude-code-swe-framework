@@ -4,7 +4,7 @@
 
 This document records capabilities that the Markdown-based Claude Code Framework cannot implement reliably. It prevents V1 from disguising prompt conventions as deterministic automation.
 
-Nothing listed here is implemented by Phase 1. Inclusion is not a commitment to build a Runtime; each capability must justify its cost and risk reduction.
+The bounded handoff checks, shared cross-worktree dispatch lock, and local Git snapshot helper in [operational-guards.md](operational-guards.md) now cover specific observed failure modes. They are not a lifecycle Runtime, transactional State store, global file-write lock, or remote backup. Other capabilities below remain proposals; each must justify its cost and risk reduction.
 
 ## V1 Boundary
 
@@ -13,7 +13,7 @@ V1 can use Claude Code reasoning and Markdown files to perform Intake, Artifact 
 V1 cannot guarantee:
 
 - transactional or atomic State updates;
-- deterministic policy enforcement;
+- comprehensive deterministic policy enforcement (the configured Agent and Write/Edit hooks cover only their matching tool calls);
 - automatic change detection and invalidation;
 - exactly-once task execution;
 - reliable multi-writer concurrency or automatic merging;

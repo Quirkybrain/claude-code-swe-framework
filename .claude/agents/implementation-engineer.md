@@ -37,6 +37,7 @@ Implement the delegated Component or change correctly within validated scope, Co
 - Necessary focused tests, unless separately assigned with an explicit reason.
 - Implementation evidence: changed paths, build, tests, and verification.
 - Updated assumptions, risks, and traceability affected by the change.
+- Build/run/test commands and known limitations for the bounded project README when this is the first runnable project delivery; hand these facts to `technical-writer`.
 
 ## Responsibilities
 

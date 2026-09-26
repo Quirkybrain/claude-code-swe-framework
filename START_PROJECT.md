@@ -18,8 +18,8 @@
 
 ## 框架执行指令
 
-1. 读取 `config/project.md`、现有 State/Checkpoint，以及 `input/` 中所有与目标相关的原始资产。若 `input/` 为空且用户未输入目标，在 Clarification Gate 中主动向用户询问核心需求。
+1. 读取 `config/project.md`、现有 State/Checkpoint，以及 `input/` 中所有与目标相关的原始资产。只有聊天需求时，委派前按 [`docs/operational-guards.md`](docs/operational-guards.md) 把用户原文一次性落盘并对照原消息核查；若资料和聊天目标都没有，在 Clarification Gate 中询问核心需求。识别 `input/` 中适用的公司 Git 提交时机及消息格式。
 2. 首先执行 Project Intake、Artifact Validation 和 Gap Analysis。根据项目复杂度、风险、已有资产和 Target Stage，确定 Workflow Level 并推导最简必要路径（Minimum Necessary Path）。
 3. 在 `STANDARD` 和 `STRICT` 模式下，**严禁主会话单体包办**，必须调用 `Agent(subagent_type=...)` 工具委派给专业智能体执行。
 4. 需要用户确认的重大分歧进入 Clarification Gate。不生成非必要的中间产物。
-5. 按依赖执行最小必要工作，持续记录 Artifact（必须包含合规的 `Producer` 字段）、验证证据与 State。达到 Target Stage 后写入 Checkpoint，标记 `PAUSED_AT_STAGE` 并安全停止。
+5. 按依赖执行最小必要工作；改动前确认 Git 提交基线和仓库状态，委派前使用 [`docs/operational-guards.md`](docs/operational-guards.md) 的固定版本交接与门禁，修改旧工件或送审前完成可验证快照。按适用的公司 Git 规范或默认规则，由 `repository-manager` 在任务边界做定向提交并复核状态。持续记录 Artifact（必须包含合规的 `Producer` 字段）、验证证据与 State。首次交付可运行代码时提供已验证命令的项目 README。达到 Target Stage 后写入 Checkpoint，标记 `PAUSED_AT_STAGE` 并安全停止。

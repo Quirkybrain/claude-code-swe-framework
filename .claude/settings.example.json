@@ -8,25 +8,29 @@
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-flash",
         "CLAUDE_CODE_SUBAGENT_MODEL": "deepseek-flash",
         "CLAUDE_CODE_EFFORT_LEVEL": "max",
-        "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "786432"
+        "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
     },
     "hooks": {
         "PreToolUse": [
             {
-                "matcher": "Write",
+                "matcher": "Agent",
                 "hooks": [
                     {
                         "type": "command",
-                        "command": ".claude/hooks/check-artifact-producer.sh"
+                        "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/check-agent-handoff.py\""
                     }
                 ]
             },
             {
-                "matcher": "Edit",
+                "matcher": "Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
-                        "command": ".claude/hooks/check-artifact-producer.sh"
+                        "command": "\"${CLAUDE_PROJECT_DIR}/.claude/hooks/check-artifact-producer.sh\""
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/check-frozen-input.py\""
                     }
                 ]
             }
@@ -36,7 +40,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": ".claude/hooks/check-closure.sh"
+                        "command": "\"${CLAUDE_PROJECT_DIR}/.claude/hooks/check-closure.sh\""
                     }
                 ]
             }

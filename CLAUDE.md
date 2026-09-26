@@ -17,6 +17,7 @@ Use this precedence order:
 6. Clearly recorded low-risk assumptions and established conventions.
 
 Never silently resolve a material conflict between sources.
+Pass normative content by path, exact revision/hash, and section anchor; read it at the source instead of retyping it in dispatches or downstream Artifacts. A missing or changed reference is `UNVERIFIED`, not a fact to reconstruct from chat.
 
 ## Project Startup Procedure
 
@@ -24,6 +25,7 @@ At the start of a new project or resumed task:
 
 1. Read the user's request and `config/project.md`.
 2. Inspect existing project state, checkpoints, and relevant Artifacts if present.
+   Start with the latest Checkpoint and active task; load historical ledgers and old revisions only for a specific open question or inconsistency.
 3. Inspect `input/` and relevant existing project files.
 4. Build or refresh the Asset and Artifact inventory.
 5. Validate target-relevant existing Artifacts before reusing them.
@@ -105,6 +107,7 @@ In `AUTO`, choose formality from complexity, risk, impact, project/task size, ma
 Project Workflow Level is a baseline; Task Workflow Level may escalate or de-escalate.
 The cost of process should not materially exceed the risk it reduces.
 Even Lightweight code changes still require implementation, testing, and verification.
+Record API requests, input/output/cache tokens, elapsed time, and correction cycles by task or Stage when usage data is available; use measured cost and escaped defects to adjust context size, not to waive required review.
 
 ## User Controls
 
@@ -145,6 +148,7 @@ Delegation is a structural constraint, not an optional request. In `STANDARD` an
 - Independent Review: `quality-reviewer` (the author cannot approve its own work)
 - Release Packaging & Deployment: `release-engineer`
 - User & Technical Documentation: `technical-writer`
+- Repository baseline, scoped Git commits, and status evidence: `repository-manager` at change boundaries; this is a cross-cutting service, not a new lifecycle Stage.
 
 **Procedural Deviations**:
 Bypassing delegation for perceived cost, serial simplicity, or convenience is strictly prohibited in `STANDARD` and `STRICT` modes. If an artifact is authored directly by the main session, it constitutes a **procedural deviation** and MUST be explicitly recorded in the artifact's `Producer` metadata (e.g., `Producer: orchestrator:main-session | Deviation: <concrete technical justification>`).
@@ -158,6 +162,10 @@ Every delegation must specify:
 - allowed write scope and Definition of Done;
 - required Gate and validation evidence.
 
+For specialist `Agent` calls, use the frozen handoff and `pin` / `begin` / `finish` checks in [`docs/operational-guards.md`](docs/operational-guards.md). Dispatch with `HANDOFF: state/handoffs/<task>.json`; verify input hashes and shared cross-worktree read/write registration before dispatch. Keep one active task per worktree; use separate worktrees for independent parallel work. Capture chat-only requests verbatim as handoff inputs. Require a persistent, nonempty deliverable for each handoff, including read-only Review reports. Before amending a predecessor or sending code to Review, create a scoped Git snapshot; `begin` verifies its ref and byte coverage, and `finish` checks actual changed files against output scopes and original snapshot bytes. Do not update an active Agent's pinned inputs. These checks support, but do not replace, Artifact validation or Gate judgment.
+
+Before modifying a repository for a bug fix, feature, refactor, or Artifact/documentation change, establish a committed baseline and inspect status; after validation, commit the coherent result at the applicable boundary. In STANDARD/STRICT work delegate scoped Git commits to `repository-manager` with a `commit` action and explicit `commit_paths`; use its `status` action for a delegated status-only task. `finish` verifies physical commit evidence and requires ordinary specialists to retain their pinned HEAD throughout execution. Apply explicit company/project Git timing and message rules found in `input/` before the framework default in [`.claude/rules/repository.md`](.claude/rules/repository.md); keep unrelated user changes out of commits. Status checks do not require an Agent call.
+
 **Provenance Requirement**:
 Every managed Artifact MUST declare its `Producer` in its metadata header:
 - Standard: `Producer: agent:<agent-name>`
@@ -167,6 +175,7 @@ Artifacts lacking valid `Producer` declarations or containing unjustified deviat
 ## Testing Requirement
 
 Every code addition, modification, bug fix, or refactor must be built, tested, and verified at a risk-appropriate scope.
+A newly runnable project code delivery includes a project-root README with verified build/run/test instructions and current limitations. Delegate that bounded documentation to `technical-writer` before declaring the code delivery complete; the later documentation and release Stages still own the full guide and final package. For a bounded fix, update documentation only if affected.
 A code edit invalidates prior verification for the affected Component; after review-driven changes, rerun affected tests and review as needed.
 Test PASS alone does not satisfy Definition of Done when contracts, review, acceptance criteria, or other evidence are required.
 
@@ -182,6 +191,7 @@ Scale checks to Workflow Level without removing checks required by actual risk.
 On failure, reproduce and perform Root Cause Analysis before repeated patching.
 Classify the responsible layer; after repeated failure, stop local patching, escalate analysis, and roll back to the appropriate stage when necessary.
 Never loop indefinitely or report completion with unresolved failed evidence.
+For a dispute, record the evidence and violated source once, route the question to its Requirement/Contract/code owner, and reopen the ruling only for new evidence or an upstream change. The orchestrator does not alter product or Contract behavior to end a disagreement.
 
 ## Change Impact
 
@@ -198,6 +208,7 @@ At meaningful boundaries and before stopping, persist:
 - completed work, evidence, open clarifications, assumptions, decisions, and risks;
 - current Minimum Necessary Path;
 - next ready action and blockers.
+- local Git snapshot ref for any uncommitted code or managed predecessors needed for recovery; a digest without recoverable content is insufficient.
 
 Files are authoritative for recovery; chat history and Agent memory are not.
 

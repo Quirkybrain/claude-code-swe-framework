@@ -30,6 +30,8 @@ Run when target-relevant work for a Stage appears complete, before entering down
 1. Check whether all target-required Stage Artifacts are complete and sufficiently `VALID`.
 2. Check Artifact Validation and all applicable lower-level Gate verdicts.
 3. Check every Stage DoD item at the effective Workflow Level.
+   When a runnable new project is being delivered, check that its root README names the project, prerequisites, current limitations, and commands verified on the delivered revision. This bounded code-delivery check does not declare the later documentation or release Stage complete.
+   For modified predecessors or reviewed code, check the handoff's verified snapshot ref and coverage. Check the repository commit/status evidence at the time required by the applicable `input/` Git policy, or by the framework default when no policy applies.
 4. Check traceability, accepted risks, unresolved deviations, assumptions, and Clarifications.
 5. Determine whether failures require rework, clarification, or rollback to a responsible earlier layer.
 6. Determine whether Current Stage equals Target Stage.

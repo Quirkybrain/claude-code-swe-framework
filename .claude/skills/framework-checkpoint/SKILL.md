@@ -29,6 +29,7 @@ Run after a major Artifact/Gate result, before a blocking question or Target Sta
 
 1. Assign a Checkpoint ID and timestamp/repository reference.
 2. Record repository revision, branch/worktree, dirty paths, and any uncommitted dependency relevant to recovery.
+   For recoverable local evidence, run the scoped Git snapshot guard and record its verified `refs/swe/snapshots/...` ref, coverage, and applicable baseline/validation commit; never cite a digest as if it preserved the bytes. Record staged, unstaged, and untracked paths that remain after the commit.
 3. Record Current Stage, Target Stage, Project Workflow Level, Task Workflow Level, and Execution Mode.
 4. Record Active Task, owner capability, status, dependencies, scope, and DoD.
 5. Record Artifact IDs/revisions/states and Component IDs/contracts/states with latest evidence.
@@ -43,6 +44,7 @@ Run after a major Artifact/Gate result, before a blocking question or Target Sta
 - Chat history and Agent memory are not authoritative recovery sources.
 - Do not mark an Artifact `VALID` or Component `STABLE` without current evidence.
 - Dirty working state must be explicit; do not imply it is committed.
+- A snapshot ref is local to this Git repository and covers only its declared paths; it does not replace an external backup.
 - Open material uncertainty remains an open clarification/assumption, not a decision.
 - A Checkpoint records state; it does not make multi-file updates atomic.
 

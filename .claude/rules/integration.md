@@ -7,5 +7,6 @@
 - Never silently change a Contract to make Components fit; route the change to its responsible design and decision boundary.
 - Keep unverified or failed changes out of the stable integration baseline.
 - Parallel writers require non-overlapping scope, stable Contracts, isolated workspaces, and an explicit integration owner.
+- Parallel dispatch also requires read/write independence: no Agent may write a file or directory another active Agent reads as a pinned input, even if their write scopes do not overlap. Freeze inputs for the task duration and check the handoffs before dispatch.
 - Worktree isolation prevents file collision; it does not merge changes, resolve semantic conflicts, synchronize State, or provide validation.
 - Diagnose integration failure at the responsible interface, Contract, data, implementation, environment, design, architecture, or Requirement layer before repeated repair.
