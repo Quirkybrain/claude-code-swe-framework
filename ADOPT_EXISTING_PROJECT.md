@@ -1,6 +1,6 @@
 # Adopt Existing Project
 
-按照当前仓库的 `CLAUDE.md` 和 Claude Code Framework 接手已有项目。现有代码位于项目根目录和/或 `input/existing/`。
+按照当前运行时加载的框架主指令（Claude Code：`CLAUDE.md`；OpenCode V2：`AGENTS.md`）接手已有项目。现有代码位于项目根目录和/或 `input/existing/`。
 
 先执行面向现有代码的 Project Intake 和 Reverse Engineering，再规划任何大规模修改。
 

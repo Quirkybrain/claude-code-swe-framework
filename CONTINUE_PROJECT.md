@@ -1,6 +1,6 @@
 # Continue Project
 
-按照当前仓库的 `CLAUDE.md` 和 Claude Code Framework 继续项目。
+按照当前运行时加载的框架主指令（Claude Code：`CLAUDE.md`；OpenCode V2：`AGENTS.md`）继续项目。
 
 读取 `config/project.md`、`state/` 中最新 State/Checkpoint、Artifact Registry、当前 Minimum Necessary Path，以及所有相关 Artifact 和验证证据。
 

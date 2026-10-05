@@ -1,14 +1,18 @@
-# Claude Code AI Software Engineering Framework
+# Claude Code / OpenCode AI Software Engineering Framework
 
-**当前版本：V1.1.0（交接与仓库治理增强版）**
+**当前版本：V1.1.0（OpenCode V2 适配版）**
 
-一套面向真实工程场景的 **Claude Code 软件工程 (SWE) 落地框架**。通过结构化 Markdown 编排、多角色智能体协同、自适应阶段关卡与持久化状态机，帮助开发者在 Claude Code 中高效推进复杂软件研发。
+一套面向真实工程场景的 **Claude Code / OpenCode 软件工程 (SWE) 落地框架**。通过结构化 Markdown 编排、多角色智能体协同、自适应阶段关卡与持久化状态机，帮助开发者在两种运行时中推进复杂软件研发。
 
-Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 Workflow Server、数据库或后台守护进程，零外部服务依赖，由纯工程化载体驱动。
+Claude Code 或 OpenCode 作为底层推理与执行引擎，本框架无需部署独立的 Workflow Server、数据库或后台守护进程，由工程文件驱动。
 
 ---
 
 ## V1.1.0 更新说明
+
+新增 OpenCode V2 主指令、专业 Agent、交接检查插件和 DeepSeek 接入指引。Claude Code 配置继续保留；两种运行时使用相同的工程流程。
+
+### 交接与仓库治理
 
 这是基于 V1 流程的新版本，保留 **Artifact → Agent → Gate → Checkpoint** 的阶段与门禁设计。本次更新将交接、恢复与仓库管理中的关键约束落实为可执行检查：
 
@@ -47,6 +51,9 @@ Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 W
 ```text
 .
 ├── CLAUDE.md                   # 框架总控编排规则与工程守则
+├── AGENTS.md                   # OpenCode V2 主指令（由 CLAUDE.md 生成）
+├── opencode.json               # OpenCode V2 项目配置
+├── .opencode/                  # OpenCode Agent 与交接检查插件
 ├── .claude/
 │   ├── agents/                 # 15 个专业工程角色定义
 │   ├── hooks/                  # 交接与写入范围的工具调用前检查
@@ -69,10 +76,10 @@ Claude Code 作为底层推理与执行引擎，本框架无需部署独立的 W
 ## 快速开始
 
 ### 1. 引入框架
-将本仓库文件复制到目标项目的 Git 仓库根目录中，保留核心编排规则、角色配置、`.claude/hooks/` 和 `scripts/`，并将 `.claude/settings.json` 的 Hook 配置合并到项目设置。新目录先执行 `git init` 并创建一次基线提交；交接校验与快照工具还需要 Python 3。
+将本仓库文件复制到目标项目的 Git 仓库根目录中，保留核心编排规则、角色配置、`.claude/hooks/`、`.opencode/`、`opencode.json` 和 `scripts/`。Claude Code 项目需合并 `.claude/settings.json` 的 Hook 配置。新目录先执行 `git init` 并创建一次基线提交；交接校验与快照工具还需要 Python 3。
 
 ### 2. 准备项目输入 (极简上手)
-- **只有一句话想法**：直接在 `input/requirements.md` 写下一句话需求，或启动时直接发给 Claude；
+- **只有一句话想法**：直接在 `input/requirements.md` 写下一句话需求，或启动时直接发给当前 Agent；
 - **有 PRD / 设计图 / API 契约**：放入 [`input/`](input/README.md)（如 [`input/requirements/`](input/requirements/)、[`input/api/`](input/api/)，**不知道放哪直接丢进 `input/` 根目录**，框架会自动解析）；
 - **接管存量代码**：代码直接保留在当前根目录，无需迁移移动。
 详见 [input/ 3秒极速放置指南](input/README.md#3-秒极速放置指南我该把资料放哪)。
@@ -87,10 +94,12 @@ Execution Mode: GATED_AUTO # 自治级别：INTERACTIVE / GATED_AUTO / FULL_AUTO
 ```
 
 ### 4. 启动与执行
-在项目根目录启动 Claude Code：
+在项目根目录启动所选运行时：
 
 ```bash
 claude
+# 或
+opencode
 ```
 
 并根据当前场景输入引导指令（建议直接引用模板）：
@@ -98,6 +107,8 @@ claude
 ```text
 读取 START_PROJECT.md 并执行。
 ```
+
+OpenCode V2 使用 DeepSeek 时，在界面中执行 `/connect` 选择 DeepSeek，再通过 `/models` 选择模型。不要将 API key 写入仓库；`.claude/settings.example.json` 只供 Claude Code 使用。OpenCode 的详细安装、运行时映射与验证见 [OpenCode V2 使用指南](docs/opencode.md)。
 
 ---
 
@@ -157,12 +168,13 @@ claude
 - [框架完整架构设计 (Framework Architecture)](FRAMEWORK_ARCHITECTURE.md)
 - [未来运行时规划 (Future Runtime Boundary)](docs/future-runtime.md)
 - [交接、快照与上下文成本检查 (Operational Guards)](docs/operational-guards.md)
+- [OpenCode V2 使用指南](docs/opencode.md)
 
 ---
 
 ## 设计边界
 
-V1.1.0 仍属于 V1 架构：依托 Claude Code 与结构化 Markdown 实现角色协同、产物传递与质量把控。交接 Hook 和本地快照工具覆盖明确的机械检查；任意 shell 命令跨 worktree 写入仍需进程级隔离才能彻底阻止。确定性状态事务、自动化并发合并及外部系统同步等仍属于未来能力，见 [`docs/future-runtime.md`](docs/future-runtime.md)。
+V1.1.0 仍属于 V1 架构：依托 Claude Code 或 OpenCode V2 与结构化 Markdown 实现角色协同、产物传递与质量把控。交接 Hook/插件和本地快照工具覆盖明确的机械检查；OpenCode 的会话结束检查需手动运行，任意 shell 命令跨 worktree 写入仍需进程级隔离才能彻底阻止。确定性状态事务、自动化并发合并及外部系统同步等仍属于未来能力，见 [`docs/future-runtime.md`](docs/future-runtime.md)。
 
 ---
 

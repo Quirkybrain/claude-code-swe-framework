@@ -1,6 +1,6 @@
 # Execute One Task
 
-请按当前仓库的 `CLAUDE.md` 和 Claude Code Framework 执行以下单项任务。
+请按当前运行时加载的框架主指令（Claude Code：`CLAUDE.md`；OpenCode V2：`AGENTS.md`）执行以下单项任务。
 
 ```text
 Task: [描述 Bug Fix / Feature / Refactor / Review / Testing 任务]
