@@ -12,4 +12,4 @@
 
 在 Intake、逆向分析和必要澄清完成前，不要擅自重写现有系统。达到 Target Stage 后更新 Checkpoint，标记 `PAUSED_AT_STAGE` 并停止。
 
-Git 分支与公司规范：先读取 [`config/git-policy.json`](config/git-policy.json)；公司规范路径为空时采用 [`config/git-policy.default.md`](config/git-policy.default.md)。每个小任务使用独立 `task/` 分支及 worktree，完成并提交后由 `repository-manager` 合入 `feat/`；完整功能通过集成、回归、评审与门禁后再合入 `main`。详细时序见 [`docs/git-collaboration.md`](docs/git-collaboration.md)。
+Git 分支与公司规范：先读取 [`config/git-policy.json`](config/git-policy.json)；公司规范路径为空时采用 [`config/git-policy.default.md`](config/git-policy.default.md)。每个小任务使用独立 `task/` 分支及 worktree，完成并提交后由 `repository-manager` 合入相应的 `feat/`、`fix/`、`docs/` 等汇总分支；完整变更通过相关验证、评审与门禁后再合入 `main`。详细时序见 [`docs/git-collaboration.md`](docs/git-collaboration.md)。

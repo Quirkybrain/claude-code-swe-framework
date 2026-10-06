@@ -61,7 +61,7 @@ class GuardIntegrationTest(unittest.TestCase):
         (self.root / "config").mkdir()
         policy = {
             "mode": "BRANCH_PER_TASK", "company_policy_path": None,
-            "main_branch": "main", "feature_branch_pattern": "^feat/[a-z0-9-]+$",
+            "main_branch": "main", "integration_branch_pattern": "^(feat|fix|docs|refactor|test|chore)/[a-z0-9-]+$",
             "task_branch_pattern": "^task/[a-z0-9-]+$", "merge_strategy": "no-ff",
         }
         (self.root / "config/git-policy.json").write_text(json.dumps(policy), encoding="utf-8")
@@ -79,6 +79,79 @@ class GuardIntegrationTest(unittest.TestCase):
         data.update(task_branch="task/small", parent_branch="feat/example", commit_paths=["src/new.txt"])
         path.write_text(json.dumps(data), encoding="utf-8")
         return name
+
+    def assert_typed_branch_merge(self, branch, subject):
+        self.strict_git_setup()
+        self.git("switch", "main")
+        self.git("switch", "-c", branch)
+        self.git("switch", "-c", "task/small")
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        (self.root / "docs").mkdir()
+        (self.root / "docs/gate.md").write_text("Gate: PASS\n", encoding="utf-8")
+        self.git("add", "src/new.txt", "docs/gate.md")
+        self.git("commit", "-qm", subject)
+        self.git("switch", branch)
+        name = self.handoff("MERGE-TYPED", role="repository-manager",
+                            writes=["src/new.txt", "docs/gate.md"],
+                            deliverables=["state/merge-report.md"],
+                            snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(repository_action="merge", source_branch="task/small",
+                    target_branch=branch, gate_evidence_path="docs/gate.md")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        self.git("merge", "--no-ff", "-m", "chore(merge): integrate small task", "task/small")
+        (self.root / "state/merge-report.md").write_text("# Integration\nPASS\n", encoding="utf-8")
+        self.git("add", "-f", "state/merge-report.md")
+        self.git("commit", "-qm", "chore(git): record merge evidence")
+        self.guard("finish", "MERGE-TYPED")
+
+    def assert_typed_task_commit(self, branch, role, output, subject):
+        self.strict_git_setup()
+        self.git("switch", "main")
+        self.git("switch", "-c", branch)
+        self.git("switch", "-c", "task/small")
+        name = self.handoff("TASK-TYPED", role=role, writes=[output],
+                            deliverables=[output], snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(task_branch="task/small", parent_branch=branch, commit_paths=[output])
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        (self.root / output).parent.mkdir(parents=True, exist_ok=True)
+        (self.root / output).write_text("complete\n", encoding="utf-8")
+        self.git("add", output)
+        self.git("commit", "-qm", subject)
+        self.guard("finish", "TASK-TYPED")
+
+    def test_fix_branch_accepts_specialist_commit(self):
+        self.assert_typed_task_commit("fix/parser-crash", "implementation-engineer",
+                                      "src/fix.txt", "fix(parser): handle crash")
+
+    def test_docs_branch_accepts_writer_commit(self):
+        self.assert_typed_task_commit("docs/setup-guide", "technical-writer",
+                                      "docs/setup.md", "docs(setup): explain setup")
+
+    def test_fix_branch_accepts_task_merge(self):
+        self.assert_typed_branch_merge("fix/parser-crash", "fix(parser): handle crash")
+
+    def test_docs_branch_accepts_task_merge(self):
+        self.assert_typed_branch_merge("docs/setup-guide", "docs(setup): explain setup")
+
+    def test_existing_feature_pattern_setting_still_works(self):
+        policy = self.strict_git_setup()
+        policy["feature_branch_pattern"] = "^feat/[a-z0-9-]+$"
+        del policy["integration_branch_pattern"]
+        (self.root / "config/git-policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        self.git("add", "config/git-policy.json")
+        self.git("commit", "-qm", "chore(git): keep legacy branch setting")
+        self.git("switch", "-c", "task/small")
+        name = self.strict_task_handoff()
+        self.guard("pin", name)
+        self.guard("check", name)
 
     def test_branch_task_commit_is_required_and_verified(self):
         self.strict_git_setup()

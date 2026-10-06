@@ -119,10 +119,16 @@ def git_policy(root):
         raise GuardError(f"invalid Git policy settings: {error}") from error
     if not isinstance(policy, dict) or policy.get("mode") != "BRANCH_PER_TASK":
         raise GuardError("Git policy mode must be BRANCH_PER_TASK")
-    for key in ("main_branch", "feature_branch_pattern", "task_branch_pattern"):
+    for key in ("main_branch", "task_branch_pattern"):
         if not isinstance(policy.get(key), str) or not policy[key]:
             raise GuardError(f"Git policy requires {key}")
-    for key in ("feature_branch_pattern", "task_branch_pattern"):
+    if not isinstance(integration_pattern(policy), str) or not integration_pattern(policy):
+        raise GuardError("Git policy requires integration_branch_pattern")
+    for key in ("integration_branch_pattern", "feature_branch_pattern", "task_branch_pattern"):
+        if key not in policy:
+            continue
+        if not isinstance(policy[key], str) or not policy[key]:
+            raise GuardError(f"Git policy requires a nonempty {key}")
         try:
             re.compile(policy[key])
         except re.error as error:
@@ -136,6 +142,11 @@ def git_policy(root):
         if not (root / relative_path(root, company)).is_file():
             raise GuardError(f"company Git policy missing: {company}")
     return policy
+
+
+def integration_pattern(policy):
+    """Keep existing feature_branch_pattern settings valid during migration."""
+    return policy.get("integration_branch_pattern", policy.get("feature_branch_pattern"))
 
 
 def branch_tip(root, branch):
@@ -268,12 +279,12 @@ def load_spec(root, name):
             if not isinstance(source, str) or not isinstance(target, str) or source == target:
                 raise GuardError("merge action requires distinct source_branch and target_branch")
             if policy["mode"] == "BRANCH_PER_TASK":
-                task_to_feature = (re.fullmatch(policy["task_branch_pattern"], source)
-                                   and re.fullmatch(policy["feature_branch_pattern"], target))
-                feature_to_main = (re.fullmatch(policy["feature_branch_pattern"], source)
-                                   and target == policy["main_branch"])
-                if not (task_to_feature or feature_to_main):
-                    raise GuardError("merge must follow task -> feature -> main branch hierarchy")
+                task_to_integration = (re.fullmatch(policy["task_branch_pattern"], source)
+                                       and re.fullmatch(integration_pattern(policy), target))
+                integration_to_main = (re.fullmatch(integration_pattern(policy), source)
+                                       and target == policy["main_branch"])
+                if not (task_to_integration or integration_to_main):
+                    raise GuardError("merge must follow task -> integration -> main branch hierarchy")
             if not spec["writes"]:
                 raise GuardError("merge action must declare changed paths in writes")
             if policy["mode"] == "BRANCH_PER_TASK":
@@ -306,7 +317,7 @@ def load_spec(root, name):
                 raise GuardError("specialist handoff requires distinct task_branch and parent_branch")
             if policy["mode"] == "BRANCH_PER_TASK" and (
                 not re.fullmatch(policy["task_branch_pattern"], task)
-                or not re.fullmatch(policy["feature_branch_pattern"], parent)
+                or not re.fullmatch(integration_pattern(policy), parent)
             ):
                 raise GuardError("task/parent branch does not match configured Git branch patterns")
     return path, spec
