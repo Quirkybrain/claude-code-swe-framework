@@ -135,6 +135,10 @@ def git_policy(root):
             raise GuardError(f"invalid {key}: {error}") from error
     if policy.get("merge_strategy") not in ("no-ff", "ff-only"):
         raise GuardError("merge_strategy must be no-ff or ff-only")
+    if policy.get("main_merge_mode", "review_request_when_remote") not in (
+        "review_request_when_remote", "review_request", "local"
+    ):
+        raise GuardError("main_merge_mode must be review_request_when_remote, review_request, or local")
     company = policy.get("company_policy_path")
     if company is not None:
         if not isinstance(company, str) or not company.startswith("input/"):
@@ -147,6 +151,14 @@ def git_policy(root):
 def integration_pattern(policy):
     """Keep existing feature_branch_pattern settings valid during migration."""
     return policy.get("integration_branch_pattern", policy.get("feature_branch_pattern"))
+
+
+def require_local_main_merge_allowed(root, policy, target):
+    if policy["mode"] != "BRANCH_PER_TASK" or target != policy["main_branch"]:
+        return
+    mode = policy.get("main_merge_mode", "review_request_when_remote")
+    if mode == "review_request" or (mode == "review_request_when_remote" and git(root, "remote")):
+        raise GuardError("main branch requires a hosted PR/MR with required checks and review; local merge handoff is disabled")
 
 
 def branch_tip(root, branch):
@@ -172,6 +184,7 @@ def check_branch_state(root, spec, *, initial=False):
             raise GuardError("current branch changed since pin; revalidate and re-pin")
     action = spec.get("repository_action", "status")
     if spec["role"] == "repository-manager" and action == "merge":
+        require_local_main_merge_allowed(root, policy, spec["target_branch"])
         if current_branch(root) != spec["target_branch"]:
             raise GuardError("merge must run on target_branch")
         if branch_tip(root, spec["source_branch"]) != spec.get("source_commit"):
@@ -285,6 +298,8 @@ def load_spec(root, name):
                                        and target == policy["main_branch"])
                 if not (task_to_integration or integration_to_main):
                     raise GuardError("merge must follow task -> integration -> main branch hierarchy")
+                if integration_to_main:
+                    require_local_main_merge_allowed(root, policy, target)
             if not spec["writes"]:
                 raise GuardError("merge action must declare changed paths in writes")
             if policy["mode"] == "BRANCH_PER_TASK":
@@ -711,7 +726,8 @@ def check_commit_subject(root, spec, revision):
     subject = git(root, "log", "-1", "--format=%s", revision)
     if not spec.get("commit_policy_path") and (
         len(subject) > 72 or not re.fullmatch(
-            r"(?:feat|fix|refactor|test|docs|chore)(?:\([^)]+\))?: \S(?:.*\S)?", subject
+            r"(?:feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)"
+            r"(?:\([^)]+\))?!?: \S(?:.*\S)?", subject
         ) or subject.endswith(".")
     ):
         raise GuardError(f"commit subject does not match the default format: {subject}")

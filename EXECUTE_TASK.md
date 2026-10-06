@@ -19,4 +19,4 @@ Constraints: [额外约束；没有则填写 none]
 
 只修改授权范围，不做无关重构。记录结果、验证证据、受影响状态和下一动作；达到本任务目标后更新 Checkpoint 并停止。
 
-Git 分支与公司规范：先读取 [`config/git-policy.json`](config/git-policy.json)；公司规范路径为空时采用 [`config/git-policy.default.md`](config/git-policy.default.md)。每个小任务使用独立 `task/` 分支及 worktree，完成并提交后由 `repository-manager` 合入相应的 `feat/`、`fix/`、`docs/` 等汇总分支；完整变更通过相关验证、评审与门禁后再合入 `main`。详细时序见 [`docs/git-collaboration.md`](docs/git-collaboration.md)。
+Git 分支与公司规范：先读取 [`config/git-policy.json`](config/git-policy.json)；公司规范路径为空时采用 [`config/git-policy.default.md`](config/git-policy.default.md)。每个小任务使用独立 `task/` 分支及 worktree，完成并提交后由 `repository-manager` 合入相应的 `feat/`、`fix/`、`docs/` 等汇总分支；完整变更通过相关验证、评审与门禁后，托管项目经 PR/MR 合入受保护的 `main`（无远端时按设置执行本地合并）。详细时序见 [`docs/git-collaboration.md`](docs/git-collaboration.md)。

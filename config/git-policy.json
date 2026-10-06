@@ -2,7 +2,8 @@
   "mode": "BRANCH_PER_TASK",
   "company_policy_path": null,
   "main_branch": "main",
-  "integration_branch_pattern": "^(feat|fix|docs|refactor|test|chore)/[a-z0-9][a-z0-9._-]*$",
+  "integration_branch_pattern": "^(feat|feature|fix|bugfix|hotfix|docs|refactor|test|chore|release)/[a-z0-9][a-z0-9._-]*$",
   "task_branch_pattern": "^task/[a-z0-9][a-z0-9._-]*$",
-  "merge_strategy": "no-ff"
+  "merge_strategy": "no-ff",
+  "main_merge_mode": "review_request_when_remote"
 }

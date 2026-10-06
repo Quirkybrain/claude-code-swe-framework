@@ -1,89 +1,137 @@
 # Default Git Collaboration Policy
 
-This policy applies when `config/git-policy.json` has `company_policy_path: null`.
-An explicit user instruction has priority. When a company policy path is set,
-read and pin that file; its applicable clauses override the corresponding
-defaults here. `config/git-policy.json` provides machine-readable branch patterns
-and merge strategy for the guard.
+This is the framework default when `config/git-policy.json` sets
+`company_policy_path` to `null`. The current user instruction takes priority;
+a configured company policy overrides only its applicable clauses. The JSON
+settings make branch shapes, merge strategy, and hosted-main behavior
+machine-checkable. Read the actual company source and pin it in each handoff.
 
-## Branch hierarchy and ownership
+## Branches and ownership
 
-`main` is the protected release branch. Create an integration branch named for
-the primary work type, then one `task/<task-id>` branch per small delegated task:
+Keep `main` releasable. Create one short-lived integration branch for a coherent
+outcome, then one `task/<task-id>` branch and separate worktree per delegated
+small task. `repository-manager` creates branches and performs integrations;
+each specialist commits only its declared outputs. A report-only reviewer
+commits its report without changing reviewed files. The Orchestrator owns Gate
+judgment. Never assign two active writers to one worktree or task branch.
 
-| Work | Integration branch | Example task branch |
+| Primary outcome | Default integration branch | Also accepted |
 |---|---|---|
-| New feature | `feat/<name>` | `task/add-export-api` |
-| Bug fix, including urgent fix | `fix/<name>` | `task/fix-null-crash` |
-| Documentation only | `docs/<name>` | `task/update-install-guide` |
-| Refactor | `refactor/<name>` | `task/extract-parser` |
-| Tests only | `test/<name>` | `task/add-parser-regression` |
-| Maintenance/build | `chore/<name>` | `task/upgrade-linter` |
+| New capability | `feat/<name>` | `feature/<name>` |
+| Defect correction | `fix/<name>` | `bugfix/<name>` |
+| Urgent production correction | `hotfix/<name>` | — |
+| Independent documentation | `docs/<name>` | — |
+| Refactor, performance, tests, maintenance | `refactor/`, `test/`, `chore/` | — |
+| Explicit release preparation | `release/<version>` | — |
 
-The branch type follows the primary outcome, not the Agent role. A bug fix may
-include regression tests and documentation on the same `fix/` integration
-branch; a feature may include tests and docs on its `feat/` branch. If one
-request contains independent outcomes, split them into bounded integration
-branches and merge each after its own Gate. Do not create a separate `docs/`
-branch merely because a feature needs a README update.
+Use the primary outcome to name the integration branch, regardless of Agent
+role. Regression tests and a README update required by a bug fix belong on
+its `fix/` branch. A `hotfix/` starts from the current production `main`; after
+its approved merge, assess active integration branches and carry the fix
+forward where needed. A `release/` branch is optional and only for a real
+release candidate; do not create one for ordinary feature work. Company branch
+names can replace this set through `integration_branch_pattern`.
 
-Each task branch belongs to one Agent and one worktree. The Agent commits only
-its declared outputs. A report-only analyst or reviewer may write and commit
-its own report, but may not edit the code or Artifact it reviews. The
-`repository-manager` prepares branches/worktrees and performs merges; the
-Orchestrator owns Gate decisions. Never have two Agents write in one worktree
-or share one task branch.
+## Synchronization and conflict handling
 
-## When to update branches
+At branch creation and integration boundaries, inspect status and fetch remote
+refs when a remote exists. On a clean local tracking `main`, use
+`git pull --ff-only`; if it cannot fast-forward, stop and inspect the divergent
+history. Create task branches from the latest committed integration tip. Do
+not pull, switch, merge, or rebase inside an active handoff. A rebase may be
+used deliberately on a private, unshared task branch before pinning; it
+rewrites commit identities, so do not use `git pull --rebase` as a blanket
+rule on reviewed or shared work. Resolve conflicts against pinned
+Requirements/Contracts, record affected paths, and rerun affected checks.
+Never force-push to hide conflicts.
 
-Before creating an integration branch, fetch the remote and fast-forward local
-`main` only when it has an upstream and the working tree is clean. Without a
-remote, use the inspected local `main`. Before creating a task branch, use the
-latest committed integration tip. Before merging task into integration, fetch
-remote updates if applicable, confirm both source and target tips, and
-integrate any target changes explicitly. Before integration into `main`,
-refresh `main` again. Do not run `git pull` or switch branches inside an active
-handoff. A fetch does not merge; use `git pull --ff-only` only for a tracking
-branch that should move by fast-forward. Never silently rebase or force-update
-a branch after review.
+## Atomic commits and messages
 
-## Task commits and review
+Commit one logical change at a time. Stage named paths or hunks with
+`git add -p`; inspect `git diff --cached`, `git diff --cached --check`, and
+status before committing. Commit validated work at a meaningful boundary and
+before a review or dependent task. For a correction after review, make a new
+commit and revalidate; do not amend a reviewed/shared commit. Before an
+interruption, keep a recoverable snapshot and Checkpoint. An incomplete
+checkpoint commit may preserve local work on a private task branch, but it
+cannot satisfy the task Gate or be merged. A local commit is not a remote
+backup.
 
-Use a committed baseline and a clean task worktree before dispatch. A handoff
-pins `task_branch`, `parent_branch`, and `commit_paths`. After local validation,
-stage explicit paths, inspect `git diff --cached` and `git diff --cached --check`,
-and commit before `finish` and independent review. Use a new commit for a fix
-after review; do not amend a reviewed commit. A commit is evidence of a
-revision, not a Quality Gate PASS.
+Use Conventional Commits 1.0 style:
 
-Default subject: `<type>(<scope>): <summary>`, with optional scope, at most 72
-characters and no trailing period. Types are `feat`, `fix`, `refactor`, `test`,
-`docs`, `chore`. Match the commit type to the actual change; for example,
-`fix(parser): handle empty input` or `docs(setup): explain installation`.
+```text
+<type>[(scope)][!]: <description>
 
-## Merge ladder
+[optional body explaining why and relevant verification]
 
-After a task passes its required Gate and commits a nonempty Gate report on its
-task branch, merge its committed tip into the appropriate `feat/`, `fix/`,
-`docs/`, `refactor/`, `test/`, or `chore/` integration branch with
-`git merge --no-ff`. Record source/target refs, merge commit, conflicts, and
-validation evidence. Resolve conflicts only against pinned Requirements and
-Contracts; rerun affected checks after resolution. Repeat for small task
-branches. After the complete integration branch passes its appropriate checks,
-review, and Stage Gate, commit Gate and integration/regression evidence on that
-branch, merge it into `main` with `--no-ff`, and verify the exact result. A
-code-free docs branch uses relevant link/render checks rather than an unrelated
-build. Never merge a failed or stale revision. Publishing, pushing, deleting
-branches/worktrees, and deployment are separate actions.
+[optional footer, such as Closes #123 or BREAKING CHANGE: ...]
+```
+
+`type` is required; `scope` is optional. The default guard accepts `feat`,
+`fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`, and
+`revert`, with a nonempty subject of at most 72 characters and no final
+period. Match type to the specific commit, not merely its branch: a fix branch
+may contain `fix`, `test`, and `docs` commits. For English descriptions prefer
+a lowercase imperative verb (`add`, `fix`, `document`); a project with an
+established Chinese history may use a concise Chinese description. Use a
+blank line before a body; explain motivation and tradeoffs for nontrivial
+changes. Mark a breaking API change with `!` after type/scope or a
+`BREAKING CHANGE: <description>` footer, and explain migration in the body.
+A footer may link an issue or task. The guard validates the default subject
+shape; the Orchestrator reviews meaning, body, and company-specific rules.
+
+Examples:
+
+```text
+fix(parser): handle empty input
+test(parser): cover empty input
+perf(cache): reduce allocations
+feat(api)!: change response envelope
+
+BREAKING CHANGE: clients must read the data field.
+```
+
+## Review, CI, and merge ladder
+
+After a task passes its Gate and commits source-branch evidence, merge its tip
+into the integration branch using the configured `merge_strategy` (`--no-ff`
+by default). Record source and target tips, conflict resolution, changed
+paths, review decision, and validation evidence. Revalidate the integrated
+result; a passing task test does not prove the combined result stable.
+
+After all small tasks pass, run relevant integration/regression checks and
+independent review on the final integration branch. Refresh the main target
+and rerun stale checks after a new commit or target change. For a hosted repo,
+open a PR/MR from the integration branch to protected `main`; require at least
+one independent review, resolved discussions, and the project's required CI
+checks for the current revision. Configure these in the host's branch
+protection/rulesets; a local Markdown rule or guard cannot enforce remote
+permissions. `main_merge_mode: review_request_when_remote` blocks the local
+main-merge handoff when any remote is configured. The hosting platform performs
+the final merge after its requirements pass. For a repository without a
+remote, a guarded local merge remains possible. `review_request` always blocks
+local main merges; `local` explicitly allows them. The local merge guard does
+not claim that a PR, CI, or hosted approval happened.
+
+The `release/` branch, when used, follows the same review and protected-main
+rules. Tagging, pushing, deployment, and branch/worktree deletion are separate
+operations. Never merge a failed or stale revision.
 
 ## Company policy override
 
-Set `company_policy_path` in `config/git-policy.json` to a real file under
-`input/`, for example `input/standards/git.md`. Include that file as a pinned
-handoff input with a unique section anchor or page/location. Company rules may
-change naming, timing, message format, sync, or merge method. Update the
-machine-readable `integration_branch_pattern`, `task_branch_pattern`, and merge
-strategy in `config/git-policy.json` to match those rules. Older settings using
-`feature_branch_pattern` remain supported when `integration_branch_pattern` is
-absent. Unspecified clauses fall back to this default. Do not infer a company
-policy merely because a sample file exists.
+Place the exact company policy under `input/`, such as
+`input/standards/git.md`, and set `company_policy_path` in
+`config/git-policy.json`. Include that file as a handoff input with a unique
+section anchor or location and set `commit_policy_path`. Change
+`integration_branch_pattern`, `task_branch_pattern`, `merge_strategy`, and
+`main_merge_mode` to match the company policy. The older
+`feature_branch_pattern` remains valid if `integration_branch_pattern` is
+absent. Unspecified clauses retain the defaults above. The guard pins policy
+bytes but does not interpret natural-language approvals or test results.
+
+## Source basis
+
+- [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow) and [protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+- [GitLab branch protection](https://docs.gitlab.com/user/project/repository/branches/protected/) and [branching strategies](https://docs.gitlab.com/user/project/repository/branches/strategies/)
+- [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/)
+- [Git pull](https://git-scm.com/docs/git-pull), [contributing and logical commits](https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project.html)
