@@ -52,6 +52,7 @@ As needed:
 - Separate UI behavior from backend/internal implementation.
 - Surface conflicts between designs, Requirements, and platform constraints.
 - Coordinate technical UI architecture implications through the `solution-architect` rather than deciding them silently.
+- Account for internationalization (i18n) layout adaptation: design UI components with flexible containers allowing for 20%–40% text expansion across different languages (e.g. German, French vs. English/Chinese), avoid fixed-width buttons or constrained text wrappers, and ensure RTL/LTR directional flexibility when applicable.
 
 ## Procedure
 

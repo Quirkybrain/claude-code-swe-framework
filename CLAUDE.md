@@ -179,6 +179,15 @@ A newly runnable project code delivery includes a project-root README with verif
 A code edit invalidates prior verification for the affected Component; after review-driven changes, rerun affected tests and review as needed.
 Test PASS alone does not satisfy Definition of Done when contracts, review, acceptance criteria, or other evidence are required.
 
+## Internationalization (i18n) Standard
+
+When the user request mentions multi-language or internationalization (i18n) without specifying a custom architecture:
+- Apply the default decoupled resource bundle pattern defined in [`docs/internationalization.md`](docs/internationalization.md).
+- Enforce a single codebase: never maintain divergent or duplicate application code for different languages.
+- Decouple all user-facing text from business logic and UI templates into per-locale resource files (e.g., `locales/{locale}.json` or standard framework resource bundles).
+- Use semantic, hierarchical keys and dynamic lookup functions (e.g., `t('key')`); do not hardcode natural-language strings in application code.
+- `requirements-analyst` records standard i18n non-functional requirements and target locales; `solution-architect` defines the resource layout, loading/fallback mechanism, and contracts; `implementation-engineer` extracts all UI strings and implements key lookups; `quality-reviewer` audits against hardcoded text and verifies key parity across locale files.
+
 ## Quality Gates
 
 Use five Gate types: Clarification, Artifact Validation, Component Quality, Integration, and Stage.

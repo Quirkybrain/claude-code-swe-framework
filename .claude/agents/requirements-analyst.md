@@ -63,6 +63,7 @@ As needed by Process Budget:
 - Identify contradictions, missing actors, boundaries, error behavior, and non-functional needs.
 - Persist user answers; do not ask resolved questions again.
 - Define acceptance criteria without prescribing architecture unless the user made it a constraint.
+- When the user requests multi-language (i18n) support without specifying an architectural scheme, apply the standard default in `docs/internationalization.md`: specify externalized per-locale resource bundles, key-based text lookups, and clear target locales (e.g., source locale + English), with explicit acceptance criteria prohibiting duplicate codebases.
 - Mark affected downstream Artifacts `STALE` when Requirements change.
 
 ## Procedure

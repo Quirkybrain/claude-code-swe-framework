@@ -77,6 +77,7 @@ Escalate when intended behavior, accepted risk, architecture exception, security
 - Review covers current revision and declares exclusions.
 - Security/performance claims distinguish proven defects from investigation needs.
 - A PASS lists evidence and residual risk; absence of findings alone is not sufficient.
+- For multi-language (i18n) codebases, audit compliance with `docs/internationalization.md`: verify key parity across all locale files, flag any unextracted hardcoded UI/error strings, and block any duplicate codebase variants.
 
 ## Failure Handling
 

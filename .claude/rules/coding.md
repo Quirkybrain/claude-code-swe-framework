@@ -7,6 +7,7 @@
 - Do not perform unrelated refactoring, formatting churn, dependency upgrades, or cleanup.
 - Do not change public behavior, APIs, schemas, protocols, or other Contracts without explicit authorization and Change Impact analysis.
 - Preserve compatibility where required and make intentional incompatibility explicit.
+- When multi-language (i18n) is enabled, never hardcode user-facing strings in business logic or UI components. Extract all user-facing text into the designated locale resource files using semantic keys. Never duplicate code or create language-specific versions of source code.
 - Never expose or commit secrets; inspect and reproduce sensitive data only to the minimum extent required.
 - Production, deployment, destructive, or other high-impact external actions require explicit authority and the applicable Gate.
 - Do not hide failures, weaken validation, or classify incomplete work as done.

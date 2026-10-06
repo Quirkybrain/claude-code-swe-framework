@@ -56,6 +56,7 @@ As demanded by the target and Process Budget:
 - Record alternatives and consequences for material decisions.
 - Check architecture consistency across data, API, UI, security, deployment, and code reality.
 - Normalize standards once so other Agents share the same Project Constraints.
+- When multi-language (i18n) is required, design the standard decoupled architecture per `docs/internationalization.md`: define per-locale resource directory layout (`locales/{locale}.json`), translation lookup contracts, dynamic locale loading and fallback mechanisms; explicitly prohibit creating divergent or duplicate codebases for different languages.
 
 ## Procedure
 

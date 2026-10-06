@@ -49,6 +49,7 @@ Implement the delegated Component or change correctly within validated scope, Co
 - Build, test, and verify every code change.
 - Mark affected stable Components `UNVERIFIED` until required Gates pass.
 - Report deviations rather than silently changing upstream Artifacts.
+- When implementing multi-language (i18n) support, strictly adhere to `docs/internationalization.md`: never hardcode user-facing strings in UI or business logic, extract all text into the configured per-locale resource files using semantic keys, use standard translation lookups, and never create separate codebases or language-specific code forks.
 
 ## Procedure
 
