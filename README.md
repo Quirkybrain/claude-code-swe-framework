@@ -19,9 +19,9 @@ Claude Code 或 OpenCode 作为底层推理与执行引擎，本框架无需部�
 - **交接内容固定**：聊天需求可先保存为文件，交接单引用文件路径和锚点；派发前校验输入哈希，减少内容搬运造成的漂移。
 - **快照与实际改动核对**：修改已存在的文件及送审前要求保存本地 Git 快照；任务结束时核对可观测的改动范围、前序文件的原始快照和交付物。
 - **并行写入隔离**：同一 worktree 同时只允许一个活动任务；不同 worktree 可在声明的读写范围互不冲突时并行。
-- **提交证据校验**：仓库管理 Agent 区分状态查询与提交任务；提交任务核验 HEAD、提交路径、目标路径状态及默认提交说明。`input/` 中适用的公司规则优先。
+- **任务分支提交与逐级合并**：每个专业 Agent 在独立任务分支提交其声明的交付物；仓库管理 Agent 将通过门禁的小任务合入功能分支，完整功能通过测试与门禁后再合入主分支。守卫核验分支来源、提交范围和合并证据。公司 Git 规范可配置，缺省使用仓库内的默认规范。
 
-操作示例与检查边界见 [交接、快照与上下文成本检查](docs/operational-guards.md)。
+分支命令与公司规范配置见 [Git 多智能体协作](docs/git-collaboration.md)；交接检查见 [交接、快照与上下文成本检查](docs/operational-guards.md)。
 
 ---
 
@@ -60,6 +60,8 @@ Claude Code 或 OpenCode 作为底层推理与执行引擎，本框架无需部�
 │   ├── rules/                  # 架构、代码、质量、变更等持久化工程约束
 │   └── skills/                 # 需求导入、路径推导、代码评审等工程技能集
 ├── config/
+│   ├── git-policy.json          # Git 协作设置及公司规范路径
+│   ├── git-policy.default.md    # 内置默认 Git 规范
 │   ├── project.md              # 项目核心配置文件
 │   └── project.example.md      # 配置参考范例
 ├── input/                      # 原始输入资产池（需求、旧代码、团队规范、接口定义等）
@@ -92,6 +94,8 @@ Target Stage: auto         # 目标阶段：requirements / architecture / implem
 Workflow Mode: AUTO        # 严格度：LIGHTWEIGHT / STANDARD / STRICT / AUTO
 Execution Mode: GATED_AUTO # 自治级别：INTERACTIVE / GATED_AUTO / FULL_AUTO
 ```
+
+编辑 [`config/git-policy.json`](config/git-policy.json)：默认 `company_policy_path` 为 `null`。若公司提供 Git 规范，将原文放入 `input/` 并设置该路径；必要时同步调整分支命名正则和合并策略。未填写时使用 [默认规范](config/git-policy.default.md)。具体分支时序见 [Git 协作指南](docs/git-collaboration.md)。
 
 ### 4. 启动与执行
 在项目根目录启动所选运行时：

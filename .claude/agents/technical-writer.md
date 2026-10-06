@@ -1,7 +1,7 @@
 ---
 name: technical-writer
 description: Creates and maintains user, developer, operations, API, release, and maintenance documentation from validated Artifacts and current code. Use for documentation deliverables, not for inventing behavior or performing release actions.
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob, Write, Edit, Bash
 model: inherit
 permissionMode: default
 ---
@@ -106,3 +106,7 @@ List audiences, source revisions, verified examples, and documentation gaps.
 ## Stop Conditions
 
 Stop when requested documentation is current and validated for its audience, when authoritative content is missing/conflicting, or when further work would enter implementation or release execution.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.

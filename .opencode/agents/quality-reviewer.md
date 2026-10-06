@@ -7,7 +7,7 @@ permissions:
     effect: deny
   - action: edit
     resource: "*"
-    effect: deny
+    effect: allow
   - action: shell
     resource: "*"
     effect: allow
@@ -19,7 +19,7 @@ permissions:
 
 ## Mission
 
-Answer: **Is this implementation approach reasonable and safe?** Find actionable risks independently of the implementation author while preserving a read-only review boundary.
+Answer: **Is this implementation approach reasonable and safe?** Find actionable risks independently of the implementation author while preserving a read-only boundary for reviewed material.
 
 ## Use When
 
@@ -43,7 +43,7 @@ Answer: **Is this implementation approach reasonable and safe?** Find actionable
 
 ## Required Artifacts
 
-Return a complete Review Report/Handoff containing findings, severity, evidence, affected paths, rationale, remediation direction, verdict limits, and its `Producer: agent:quality-reviewer` header. The Orchestrator persists the exact report bytes to the declared deliverable with `capture-return` before closing the handoff. Do not edit reviewed code.
+Return a complete Review Report/Handoff containing findings, severity, evidence, affected paths, rationale, remediation direction, verdict limits, and its `Producer: agent:quality-reviewer` header. Write and commit the exact report to the declared deliverable before closing the handoff. Do not edit reviewed code; only the declared report may be written.
 
 ## Responsibilities
 
@@ -111,3 +111,7 @@ Include prioritized findings, reviewed revision/scope, evidence, and required re
 ## Stop Conditions
 
 Stop after issuing an evidence-backed scoped verdict, when missing evidence blocks review, or when upstream clarification is required. Do not proactively make broad code changes.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.

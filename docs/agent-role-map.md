@@ -30,9 +30,9 @@ Specialist Agents produce or validate bounded Artifacts. They do not form a fixe
 | `system-verifier` | End-to-end traceability, system verification, acceptance analysis | Verification and acceptance reports |
 | `technical-writer` | User, developer, operations, and maintenance documentation | Documentation only |
 | `release-engineer` | Release readiness, deployment planning, controlled release evidence | Release assets; external effects remain gated |
-| `repository-manager` | Git baseline, scoped commits, worktree/status and snapshot-ref evidence | Repository operations and status record; no product changes or Gate verdict |
+| `repository-manager` | Git baselines, branch/worktree setup, synchronization, scoped merges and repository evidence | Repository operations and status record; no product changes or Gate verdict |
 
-The frontmatter tools implement coarse least privilege. More granular path boundaries remain behavioral intent; deterministic path enforcement requires permissions or Hooks and is not claimed by Markdown V1.
+Report-only roles can write their declared evidence reports but keep reviewed code read-only. Frontmatter tools implement coarse permissions; Claude Code hooks and the OpenCode guard plugin constrain declared output paths, and `swe_guard.py finish` checks observed changes.
 
 ## Logical Role Mapping
 

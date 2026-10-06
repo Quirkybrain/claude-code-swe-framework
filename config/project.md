@@ -54,6 +54,10 @@
 | Compatibility Requirements | auto |
 | Other Constraints | auto |
 
+## Git Collaboration
+
+分支命名、合并策略和公司规范入口在 [`git-policy.json`](git-policy.json)。`company_policy_path: null` 时使用 [`git-policy.default.md`](git-policy.default.md)；公司规范原文放入 `input/` 并在设置中填写路径。任务分支与多智能体合并步骤见 [`docs/git-collaboration.md`](../docs/git-collaboration.md)。
+
 ## Configuration Notes
 
 Add project-specific explanations, known conflicts, or links to relevant files under `input/` here.

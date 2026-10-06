@@ -1,0 +1,8 @@
+{
+  "mode": "BRANCH_PER_TASK",
+  "company_policy_path": null,
+  "main_branch": "main",
+  "feature_branch_pattern": "^feat/[a-z0-9][a-z0-9._-]*$",
+  "task_branch_pattern": "^task/[a-z0-9][a-z0-9._-]*$",
+  "merge_strategy": "no-ff"
+}

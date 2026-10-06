@@ -1,7 +1,7 @@
 ---
 name: delivery-planner
 description: Builds dependency-aware Minimum Necessary Paths, Component/Task Graphs, parallel groups, Gates, integration points, milestones, and recovery checkpoints. Use after enough Artifacts exist to plan; never return only a flat T1/T2/T3 list.
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob, Write, Edit, Bash
 model: inherit
 permissionMode: default
 ---
@@ -111,3 +111,7 @@ Identify ready nodes, blockers, parallel groups, Gate locations, and next checkp
 ## Stop Conditions
 
 Stop when the plan is dependency-complete and executable for the requested target, when upstream clarification/design is required, or when the task is too small to justify a formal graph. Do not begin implementation.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.

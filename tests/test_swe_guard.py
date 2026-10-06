@@ -57,6 +57,197 @@ class GuardIntegrationTest(unittest.TestCase):
         (target_root / name).write_text(json.dumps(data), encoding="utf-8")
         return name
 
+    def strict_git_setup(self):
+        (self.root / "config").mkdir()
+        policy = {
+            "mode": "BRANCH_PER_TASK", "company_policy_path": None,
+            "main_branch": "main", "feature_branch_pattern": "^feat/[a-z0-9-]+$",
+            "task_branch_pattern": "^task/[a-z0-9-]+$", "merge_strategy": "no-ff",
+        }
+        (self.root / "config/git-policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        self.git("branch", "-M", "main")
+        self.git("add", "config/git-policy.json")
+        self.git("commit", "-qm", "chore(git): configure policy")
+        self.git("switch", "-c", "feat/example")
+        return policy
+
+    def strict_task_handoff(self, task_id="TASK-1"):
+        name = self.handoff(task_id, writes=["src/new.txt"], deliverables=["src/new.txt"],
+                            snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(task_branch="task/small", parent_branch="feat/example", commit_paths=["src/new.txt"])
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return name
+
+    def test_branch_task_commit_is_required_and_verified(self):
+        self.strict_git_setup()
+        self.git("switch", "-c", "task/small")
+        name = self.strict_task_handoff()
+        self.guard("pin", name)
+        self.guard("begin", name)
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        self.assertIn("no new commit", self.guard("finish", "TASK-1", expected=2))
+        self.git("add", "src/new.txt")
+        self.git("commit", "-qm", "feat(example): add small change")
+        self.guard("assert-active", name, "implementation-engineer")
+        self.assertIn("RETURNED_FOR_GATE", self.guard("finish", "TASK-1"))
+
+    def test_branch_task_rejects_wrong_branch_and_unscoped_commit(self):
+        self.strict_git_setup()
+        name = self.strict_task_handoff()
+        self.guard("pin", name)
+        self.assertIn("task_branch", self.guard("begin", name, expected=2))
+        self.git("switch", "-c", "task/small")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        (self.root / "unrelated.txt").write_text("oops\n", encoding="utf-8")
+        self.git("add", "src/new.txt", "unrelated.txt")
+        self.git("commit", "-qm", "feat(example): add small change")
+        self.assertIn("outside commit_paths", self.guard("finish", "TASK-1", expected=2))
+        self.guard("finish", "TASK-1", "--failed")
+
+    def test_merge_requires_hierarchy_and_committed_evidence(self):
+        self.strict_git_setup()
+        self.git("switch", "-c", "task/small")
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        (self.root / "docs").mkdir()
+        (self.root / "docs/gate.md").write_text("Gate: PASS\n", encoding="utf-8")
+        self.git("add", "src/new.txt", "docs/gate.md")
+        self.git("commit", "-qm", "feat(example): add small change")
+        self.git("switch", "feat/example")
+        name = self.handoff("MERGE-1", role="repository-manager", writes=["src/new.txt", "docs/gate.md"],
+                            deliverables=["state/merge-report.md"], snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(repository_action="merge", source_branch="task/small", target_branch="main", gate_evidence_path="docs/gate.md", integration_evidence_path="docs/integration.md")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.assertIn("hierarchy", self.guard("pin", name, expected=2))
+        data["target_branch"] = "feat/example"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        self.git("merge", "--no-ff", "-m", "chore(merge): integrate small task", "task/small")
+        (self.root / "state/merge-report.md").write_text("# Integration\nTests passed.\n", encoding="utf-8")
+        self.git("add", "-f", "state/merge-report.md")
+        self.git("commit", "-qm", "chore(git): record merge evidence")
+        self.assertIn("RETURNED_FOR_GATE", self.guard("finish", "MERGE-1"))
+
+    def test_branch_task_rejects_head_drift_and_bad_subject(self):
+        self.strict_git_setup()
+        self.git("switch", "-c", "task/small")
+        name = self.strict_task_handoff()
+        self.guard("pin", name)
+        self.git("-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                 "commit", "--allow-empty", "-qm", "chore(git): advance task baseline")
+        self.assertIn("HEAD changed since pin", self.guard("begin", name, expected=2))
+        self.guard("pin", name)
+        self.guard("begin", name)
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        self.git("add", "src/new.txt")
+        self.git("commit", "-qm", "bad subject")
+        self.assertIn("default format", self.guard("finish", "TASK-1", expected=2))
+        self.guard("finish", "TASK-1", "--failed")
+
+    def test_merge_requires_evidence_report_commit(self):
+        self.strict_git_setup()
+        self.git("switch", "-c", "task/small")
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        (self.root / "docs").mkdir()
+        (self.root / "docs/gate.md").write_text("Gate: PASS\n", encoding="utf-8")
+        self.git("add", "src/new.txt", "docs/gate.md")
+        self.git("commit", "-qm", "feat(example): add small change")
+        self.git("switch", "feat/example")
+        name = self.handoff("MERGE-2", role="repository-manager", writes=["src/new.txt", "docs/gate.md"],
+                            deliverables=["state/merge-report.md"], snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(repository_action="merge", source_branch="task/small", target_branch="feat/example", gate_evidence_path="docs/gate.md")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        self.git("merge", "--no-ff", "-m", "chore(merge): integrate small task", "task/small")
+        self.assertIn("evidence report", self.guard("finish", "MERGE-2", expected=2))
+        self.guard("finish", "MERGE-2", "--failed")
+
+    def test_feature_to_main_requires_committed_integration_evidence(self):
+        self.strict_git_setup()
+        (self.root / "src/new.txt").write_text("integrated feature\n", encoding="utf-8")
+        (self.root / "docs").mkdir()
+        (self.root / "docs/gate.md").write_text("Gate: PASS\n", encoding="utf-8")
+        (self.root / "docs/integration.md").write_text("Integration and regression: PASS\n", encoding="utf-8")
+        self.git("add", "src/new.txt", "docs/gate.md", "docs/integration.md")
+        self.git("commit", "-qm", "feat(example): complete feature")
+        self.git("switch", "main")
+        name = self.handoff("MERGE-MAIN", role="repository-manager",
+                            writes=["src/new.txt", "docs/gate.md", "docs/integration.md"],
+                            deliverables=["state/merge-report.md"], snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(repository_action="merge", source_branch="feat/example", target_branch="main",
+                    gate_evidence_path="docs/gate.md")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.assertIn("integration_evidence_path", self.guard("pin", name, expected=2))
+        data["integration_evidence_path"] = "docs/integration.md"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        self.git("merge", "--no-ff", "-m", "chore(merge): integrate complete feature", "feat/example")
+        (self.root / "state/merge-report.md").write_text("# Main integration\nTests passed.\n", encoding="utf-8")
+        self.git("add", "-f", "state/merge-report.md")
+        self.git("commit", "-qm", "chore(git): record main integration")
+        self.guard("finish", "MERGE-MAIN")
+
+    def test_fast_forward_merge_policy_is_verified(self):
+        policy = self.strict_git_setup()
+        policy["merge_strategy"] = "ff-only"
+        (self.root / "config/git-policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        self.git("add", "config/git-policy.json")
+        self.git("commit", "-qm", "chore(git): require fast-forward merge")
+        self.git("switch", "-c", "task/small")
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        (self.root / "docs").mkdir()
+        (self.root / "docs/gate.md").write_text("Gate: PASS\n", encoding="utf-8")
+        self.git("add", "src/new.txt", "docs/gate.md")
+        self.git("commit", "-qm", "feat(example): add small change")
+        self.git("switch", "feat/example")
+        name = self.handoff("MERGE-3", role="repository-manager", writes=["src/new.txt", "docs/gate.md"],
+                            deliverables=["state/merge-report.md"], snapshot_paths=["state/decision.md"])
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.update(repository_action="merge", source_branch="task/small", target_branch="feat/example", gate_evidence_path="docs/gate.md")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        self.git("merge", "--ff-only", "task/small")
+        (self.root / "state/merge-report.md").write_text("# Integration\nTests passed.\n", encoding="utf-8")
+        self.git("add", "-f", "state/merge-report.md")
+        self.git("commit", "-qm", "chore(git): record merge evidence")
+        self.assertIn("RETURNED_FOR_GATE", self.guard("finish", "MERGE-3"))
+
+    def test_company_git_policy_is_pinned_and_overrides_subject_format(self):
+        policy = self.strict_git_setup()
+        (self.root / "input/standards").mkdir(parents=True)
+        (self.root / "input/standards/git.md").write_text("# Corporate Git\nUse ticket subjects.\n", encoding="utf-8")
+        policy["company_policy_path"] = "input/standards/git.md"
+        (self.root / "config/git-policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        self.git("add", "config/git-policy.json", "input/standards/git.md")
+        self.git("commit", "-qm", "chore(git): set corporate policy")
+        self.git("switch", "-c", "task/small")
+        name = self.strict_task_handoff()
+        path = self.root / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["commit_policy_path"] = "input/standards/git.md"
+        data["inputs"].append({"path": "input/standards/git.md", "anchor": "# Corporate Git"})
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.guard("pin", name)
+        self.guard("begin", name)
+        (self.root / "src/new.txt").write_text("small change\n", encoding="utf-8")
+        self.git("add", "src/new.txt")
+        self.git("commit", "-qm", "TICKET-123 update")
+        self.guard("finish", "TASK-1")
+
     def test_drift_and_false_claims_block_dispatch(self):
         handoff = self.handoff()
         self.guard("pin", handoff)

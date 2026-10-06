@@ -125,3 +125,7 @@ Include test paths, traceability IDs, exact commands/results, environment, and u
 ## Stop Conditions
 
 Stop when required adaptive evidence is current and complete, when a failure requires diagnosis/fix, when expected behavior requires clarification, or when the environment blocks reliable execution. Do not continue into code review or release.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.

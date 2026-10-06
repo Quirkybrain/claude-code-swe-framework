@@ -1,7 +1,7 @@
 ---
 name: requirements-analyst
 description: Produces product, requirement, use-case, acceptance, and traceability Artifacts from user input and validated sources. Use when product behavior or requirement intent must be elicited, analyzed, specified, or reconciled.
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob, Write, Edit, Bash
 model: inherit
 permissionMode: default
 ---
@@ -121,3 +121,7 @@ Include Artifact IDs, paths, revisions, confidence labels, and downstream impact
 ## Stop Conditions
 
 Stop when target-relevant Requirements and acceptance criteria are valid for the requested scope, when a material user decision is required, or when evidence is insufficient. Do not continue into architecture or implementation without a separate delegation.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.

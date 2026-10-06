@@ -22,4 +22,6 @@
 2. 首先执行 Project Intake、Artifact Validation 和 Gap Analysis。根据项目复杂度、风险、已有资产和 Target Stage，确定 Workflow Level 并推导最简必要路径（Minimum Necessary Path）。
 3. 在 `STANDARD` 和 `STRICT` 模式下，**严禁主会话单体包办**，必须使用当前运行时的专业 Agent 工具委派：Claude Code 调用 `Agent(subagent_type=...)`，OpenCode V2 调用 `subagent` 并指定 `agent`。
 4. 需要用户确认的重大分歧进入 Clarification Gate。不生成非必要的中间产物。
-5. 按依赖执行最小必要工作；改动前确认 Git 提交基线和仓库状态，委派前使用 [`docs/operational-guards.md`](docs/operational-guards.md) 的固定版本交接与门禁，修改旧工件或送审前完成可验证快照。按适用的公司 Git 规范或默认规则，由 `repository-manager` 在任务边界做定向提交并复核状态。持续记录 Artifact（必须包含合规的 `Producer` 字段）、验证证据与 State。首次交付可运行代码时提供已验证命令的项目 README。达到 Target Stage 后写入 Checkpoint，标记 `PAUSED_AT_STAGE` 并安全停止。
+5. 按依赖执行最小必要工作；改动前确认 Git 提交基线和仓库状态，委派前使用 [`docs/operational-guards.md`](docs/operational-guards.md) 的固定版本交接与门禁，修改旧工件或送审前完成可验证快照。按适用的公司 Git 规范或默认规则，由专业 Agent 在独立小任务分支提交其交付物；`repository-manager` 按通过的门禁逐级合并并复核状态。持续记录 Artifact（必须包含合规的 `Producer` 字段）、验证证据与 State。首次交付可运行代码时提供已验证命令的项目 README。达到 Target Stage 后写入 Checkpoint，标记 `PAUSED_AT_STAGE` 并安全停止。
+
+Git 分支与公司规范：先读取 [`config/git-policy.json`](config/git-policy.json)；公司规范路径为空时采用 [`config/git-policy.default.md`](config/git-policy.default.md)。每个小任务使用独立 `task/` 分支及 worktree，完成并提交后由 `repository-manager` 合入 `feat/`；完整功能通过集成、回归、评审与门禁后再合入 `main`。详细时序见 [`docs/git-collaboration.md`](docs/git-collaboration.md)。

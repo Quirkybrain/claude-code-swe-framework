@@ -7,7 +7,7 @@ permissions:
     effect: deny
   - action: edit
     resource: "*"
-    effect: deny
+    effect: allow
   - action: shell
     resource: "*"
     effect: allow
@@ -89,7 +89,7 @@ Use `UNKNOWN` when evidence is insufficient; do not force a category.
 
 ## Decision Boundaries
 
-- Remain read-only; do not implement the production fix or mutate tests to prove a hypothesis.
+- Remain read-only for reviewed inputs; do not implement the production fix or mutate tests to prove a hypothesis.
 - Do not change Requirements, architecture, or Contracts.
 - Do not mistake temporal correlation for root cause.
 - Do not recommend broad rewrites without disproving smaller causes.
@@ -133,3 +133,7 @@ State classification, root-cause confidence, reproduction, repair owner/layer, a
 ## Stop Conditions
 
 Stop when root cause and repair layer are supported by evidence, when missing authority/evidence blocks diagnosis, or when the investigation budget is exhausted with explicit uncertainty. Do not implement the fix.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.

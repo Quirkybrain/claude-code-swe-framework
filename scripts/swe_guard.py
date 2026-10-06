@@ -108,6 +108,85 @@ def relative_path(root, value):
     return path.as_posix()
 
 
+def git_policy(root):
+    """Read machine-checkable settings; old projects without them retain V1 behavior."""
+    path = root / "config/git-policy.json"
+    if not path.is_file():
+        return {"mode": "LEGACY", "company_policy_path": None}
+    try:
+        policy = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise GuardError(f"invalid Git policy settings: {error}") from error
+    if not isinstance(policy, dict) or policy.get("mode") != "BRANCH_PER_TASK":
+        raise GuardError("Git policy mode must be BRANCH_PER_TASK")
+    for key in ("main_branch", "feature_branch_pattern", "task_branch_pattern"):
+        if not isinstance(policy.get(key), str) or not policy[key]:
+            raise GuardError(f"Git policy requires {key}")
+    for key in ("feature_branch_pattern", "task_branch_pattern"):
+        try:
+            re.compile(policy[key])
+        except re.error as error:
+            raise GuardError(f"invalid {key}: {error}") from error
+    if policy.get("merge_strategy") not in ("no-ff", "ff-only"):
+        raise GuardError("merge_strategy must be no-ff or ff-only")
+    company = policy.get("company_policy_path")
+    if company is not None:
+        if not isinstance(company, str) or not company.startswith("input/"):
+            raise GuardError("company_policy_path must name a file under input/")
+        if not (root / relative_path(root, company)).is_file():
+            raise GuardError(f"company Git policy missing: {company}")
+    return policy
+
+
+def branch_tip(root, branch):
+    if not isinstance(branch, str) or not branch or branch.startswith("-") or " " in branch:
+        raise GuardError(f"invalid branch name: {branch!r}")
+    return git(root, "rev-parse", "--verify", f"refs/heads/{branch}")
+
+
+def current_branch(root):
+    branch = git(root, "branch", "--show-current")
+    if not branch:
+        raise GuardError("detached HEAD is not allowed for a managed task")
+    return branch
+
+
+def check_branch_state(root, spec, *, initial=False):
+    policy = git_policy(root)
+    if policy["mode"] == "BRANCH_PER_TASK":
+        expected = spec.get("git_policy_sha256")
+        if expected != file_hash(root / "config/git-policy.json"):
+            raise GuardError("Git policy settings changed since pin; re-pin the handoff")
+        if current_branch(root) != spec.get("base_branch"):
+            raise GuardError("current branch changed since pin; revalidate and re-pin")
+    action = spec.get("repository_action", "status")
+    if spec["role"] == "repository-manager" and action == "merge":
+        if current_branch(root) != spec["target_branch"]:
+            raise GuardError("merge must run on target_branch")
+        if branch_tip(root, spec["source_branch"]) != spec.get("source_commit"):
+            raise GuardError("source branch moved since pin; revalidate and re-pin")
+        if policy["mode"] == "BRANCH_PER_TASK":
+            fields = ["gate_evidence_path"]
+            if spec["target_branch"] == policy["main_branch"]:
+                fields.append("integration_evidence_path")
+            for field in fields:
+                if digest(git_blob(root, spec["source_commit"], spec[field])) != spec.get(field + "_sha256"):
+                    raise GuardError(f"source branch {field} changed since pin")
+        if initial:
+            try:
+                git(root, "merge-base", "--is-ancestor", spec["source_commit"], spec["base_commit"])
+            except GuardError:
+                pass
+            else:
+                raise GuardError("source branch is already merged into target")
+    elif spec["role"] != "repository-manager" and "task_branch" in spec:
+        if current_branch(root) != spec["task_branch"]:
+            raise GuardError("specialist must work on its pinned task_branch")
+        parent = branch_tip(root, spec["parent_branch"])
+        if parent != spec.get("parent_commit"):
+            raise GuardError("parent branch moved since pin; sync and re-pin")
+        git(root, "merge-base", "--is-ancestor", spec["parent_commit"], spec["base_commit"])
+
 def file_hash(path):
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -164,21 +243,72 @@ def load_spec(root, name):
         location = spec.get("commit_policy_location")
         if not matches or not (matches[0].get("anchor") or isinstance(location, str) and location.strip()):
             raise GuardError("commit policy requires its input file and a section anchor or page/location")
+    policy = git_policy(root)
+    if policy["mode"] == "BRANCH_PER_TASK":
+        company = policy["company_policy_path"]
+        if company and policy_path != company:
+            raise GuardError(f"handoff must pin configured company Git policy: {company}")
+        if not company and policy_path is not None:
+            raise GuardError("company Git policy is not configured; use the default policy")
     action = spec.get("repository_action", "status")
+    paths = spec.get("commit_paths", [])
+    if not isinstance(paths, list):
+        raise GuardError("commit_paths must be a list")
+    for item in paths:
+        relative_path(root, item)
     if spec["role"] == "repository-manager":
-        if action not in ("status", "commit"):
-            raise GuardError("repository_action must be status or commit")
-        paths = spec.get("commit_paths", [])
-        if not isinstance(paths, list):
-            raise GuardError("commit_paths must be a list")
-        for item in paths:
-            relative_path(root, item)
+        if action not in ("status", "commit", "merge"):
+            raise GuardError("repository_action must be status, commit, or merge")
         if action == "commit" and not paths:
             raise GuardError("commit action requires explicit commit_paths")
-        if action == "status" and paths:
-            raise GuardError("status action cannot declare commit_paths")
-    elif "repository_action" in spec or "commit_paths" in spec:
-        raise GuardError("repository_action and commit_paths belong to repository-manager")
+        if action != "commit" and paths:
+            raise GuardError(f"{action} action cannot declare commit_paths")
+        if action == "merge":
+            source, target = spec.get("source_branch"), spec.get("target_branch")
+            if not isinstance(source, str) or not isinstance(target, str) or source == target:
+                raise GuardError("merge action requires distinct source_branch and target_branch")
+            if policy["mode"] == "BRANCH_PER_TASK":
+                task_to_feature = (re.fullmatch(policy["task_branch_pattern"], source)
+                                   and re.fullmatch(policy["feature_branch_pattern"], target))
+                feature_to_main = (re.fullmatch(policy["feature_branch_pattern"], source)
+                                   and target == policy["main_branch"])
+                if not (task_to_feature or feature_to_main):
+                    raise GuardError("merge must follow task -> feature -> main branch hierarchy")
+            if not spec["writes"]:
+                raise GuardError("merge action must declare changed paths in writes")
+            if policy["mode"] == "BRANCH_PER_TASK":
+                required_evidence = ["gate_evidence_path"]
+                if target == policy["main_branch"]:
+                    required_evidence.append("integration_evidence_path")
+                for field in required_evidence:
+                    evidence = spec.get(field)
+                    if not isinstance(evidence, str) or not evidence:
+                        raise GuardError(f"merge action requires {field}")
+                    relative_path(root, evidence)
+                    # Evidence lives in the source branch and is pinned by source_commit.
+        elif "source_branch" in spec or "target_branch" in spec:
+            raise GuardError("source_branch and target_branch belong to merge action")
+    else:
+        if "repository_action" in spec or "source_branch" in spec or "target_branch" in spec:
+            raise GuardError("repository_action and merge branches belong to repository-manager")
+        if policy["mode"] == "BRANCH_PER_TASK" and not paths:
+            raise GuardError("branch-per-task specialist handoff requires commit_paths")
+        if paths:
+            for name in spec["deliverables"]:
+                if not any(covers(scope, name) for scope in paths):
+                    raise GuardError(f"deliverable is outside commit_paths: {name}")
+            for name in paths:
+                if not any(covers(scope, name) for scope in output_scopes(spec)):
+                    raise GuardError(f"commit_paths is outside declared output: {name}")
+        if policy["mode"] == "BRANCH_PER_TASK" or "task_branch" in spec or "parent_branch" in spec:
+            task, parent = spec.get("task_branch"), spec.get("parent_branch")
+            if not isinstance(task, str) or not isinstance(parent, str) or task == parent:
+                raise GuardError("specialist handoff requires distinct task_branch and parent_branch")
+            if policy["mode"] == "BRANCH_PER_TASK" and (
+                not re.fullmatch(policy["task_branch_pattern"], task)
+                or not re.fullmatch(policy["feature_branch_pattern"], parent)
+            ):
+                raise GuardError("task/parent branch does not match configured Git branch patterns")
     return path, spec
 
 
@@ -229,6 +359,8 @@ def protected_paths(root, spec):
     ]
     if spec.get("defer_commit"):
         protected += [scope for scope in spec["writes"] if dirty_scope(root, spec, scope)]
+    if spec["role"] == "repository-manager" and spec.get("repository_action") == "merge":
+        protected += [scope for scope in spec["writes"] if (root / scope).exists()]
     return list(dict.fromkeys(protected))
 
 
@@ -446,6 +578,22 @@ def pin(root, name):
                 raise GuardError(f"anchor must occur exactly once: {item['path']}")
             item["sha256"] = file_hash(source)
         spec["base_commit"] = git(root, "rev-parse", "HEAD")
+        if git_policy(root)["mode"] == "BRANCH_PER_TASK":
+            spec["git_policy_sha256"] = file_hash(root / "config/git-policy.json")
+            spec["base_branch"] = current_branch(root)
+        if spec["role"] != "repository-manager" and "parent_branch" in spec:
+            spec["parent_commit"] = branch_tip(root, spec["parent_branch"])
+        if spec["role"] == "repository-manager" and spec.get("repository_action") == "merge":
+            spec["source_commit"] = branch_tip(root, spec["source_branch"])
+            if git_policy(root)["mode"] == "BRANCH_PER_TASK":
+                fields = ["gate_evidence_path"]
+                if spec["target_branch"] == git_policy(root)["main_branch"]:
+                    fields.append("integration_evidence_path")
+                for field in fields:
+                    evidence = git_blob(root, spec["source_commit"], spec[field])
+                    if not evidence:
+                        raise GuardError(f"source branch {field} is empty: {spec[field]}")
+                    spec[field + "_sha256"] = digest(evidence)
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as output:
             json.dump(spec, output, ensure_ascii=False, indent=2)
             output.write("\n")
@@ -460,6 +608,9 @@ def check(root, name):
     check_inputs(root, spec)
     if spec.get("base_commit") != git(root, "rev-parse", "HEAD"):
         raise GuardError("HEAD changed since pin; inspect the new baseline and re-pin")
+    check_branch_state(root, spec, initial=True)
+    if git_policy(root)["mode"] == "BRANCH_PER_TASK" and git(root, "diff", "--cached", "--raw", "-z"):
+        raise GuardError("staged changes exist before dispatch; commit or isolate them")
     for scope in spec["writes"]:
         if dirty_scope(root, spec, scope) and not spec.get("defer_commit"):
             raise GuardError(f"write scope has uncommitted changes before dispatch: {scope}; commit or isolate them")
@@ -515,8 +666,12 @@ def assert_active(root, name, role):
         raise GuardError("handoff changed after begin")
     if record["spec"] != spec or spec["role"] != role:
         raise GuardError(f"handoff role or frozen content disagrees with Agent {role}")
-    if spec["role"] != "repository-manager" and git(root, "rev-parse", "HEAD") != spec["base_commit"]:
-        raise GuardError("HEAD changed during active task; fail and re-dispatch from a reviewed baseline")
+    check_branch_state(root, spec)
+    if spec["role"] != "repository-manager":
+        if spec.get("commit_paths"):
+            git(root, "merge-base", "--is-ancestor", spec["base_commit"], "HEAD")
+        elif git(root, "rev-parse", "HEAD") != spec["base_commit"]:
+            raise GuardError("HEAD changed during active task; fail and re-dispatch from a reviewed baseline")
     check_inputs(root, spec)
     if spec["role"] == "quality-reviewer":
         check_snapshot(root, name, spec)
@@ -541,14 +696,19 @@ def assert_write(root, name):
             raise GuardError(f"{spec['task_id']} cannot Write/Edit outside declared output: {path}")
 
 
-def check_repository_result(root, spec):
+def check_commit_subject(root, spec, revision):
+    subject = git(root, "log", "-1", "--format=%s", revision)
+    if not spec.get("commit_policy_path") and (
+        len(subject) > 72 or not re.fullmatch(
+            r"(?:feat|fix|refactor|test|docs|chore)(?:\([^)]+\))?: \S(?:.*\S)?", subject
+        ) or subject.endswith(".")
+    ):
+        raise GuardError(f"commit subject does not match the default format: {subject}")
+
+
+def check_commit_result(root, spec):
     base = spec["base_commit"]
     head = git(root, "rev-parse", "HEAD")
-    action = spec.get("repository_action", "status")
-    if action == "status":
-        if head != base:
-            raise GuardError("status-only repository task changed HEAD; declare a commit action")
-        return
     if head == base:
         raise GuardError("commit action produced no new commit")
     git(root, "merge-base", "--is-ancestor", base, head)
@@ -558,17 +718,13 @@ def check_repository_result(root, spec):
         parents = git(root, "rev-list", "--parents", "-n", "1", commit).split()
         if len(parents) != 2:
             raise GuardError(f"commit action includes a merge or root commit: {commit}")
-        paths = {name for name in git(root, "diff-tree", "--no-commit-id", "--name-only", "--no-renames", "-r", "-z", commit).split("\0") if name}
+        paths = {name for name in git(root, "diff-tree", "--no-commit-id", "--name-only",
+                                      "--no-renames", "-r", "-z", commit).split("\0") if name}
         for name in paths:
             if not any(covers(scope, name) for scope in spec["commit_paths"]):
                 raise GuardError(f"commit contains path outside commit_paths: {name}")
         changed.update(paths)
-        subject = git(root, "log", "-1", "--format=%s", commit)
-        if not spec.get("commit_policy_path") and (
-            len(subject) > 72 or not re.fullmatch(r"(?:feat|fix|refactor|test|docs|chore)(?:\([^)]+\))?: \S(?:.*\S)?", subject)
-            or subject.endswith(".")
-        ):
-            raise GuardError(f"commit subject does not match the default format: {subject}")
+        check_commit_subject(root, spec, commit)
     if not changed:
         raise GuardError("commit action has no changed paths")
     for scope in spec["commit_paths"]:
@@ -577,6 +733,65 @@ def check_repository_result(root, spec):
         if git(root, "status", "--porcelain=v1", "--untracked-files=all", "--", scope):
             raise GuardError(f"committed path remains dirty: {scope}")
     print(f"OK commit evidence {base[:12]}..{head[:12]} paths={len(changed)} commits={len(commits)}")
+
+
+def check_merge_result(root, spec):
+    base, source = spec["base_commit"], spec["source_commit"]
+    head = git(root, "rev-parse", "HEAD")
+    policy = git_policy(root)
+    strategy = policy.get("merge_strategy", "no-ff")
+    first_parent = git(root, "rev-list", "--first-parent", "--reverse", f"{base}..{head}").splitlines()
+    if not first_parent:
+        raise GuardError("merge action produced no new commit")
+    if strategy == "no-ff":
+        merge = first_parent[0]
+        parents = git(root, "rev-list", "--parents", "-n", "1", merge).split()
+        if len(parents) != 3 or parents[1:] != [base, source]:
+            raise GuardError("merge must create a two-parent commit from pinned target and source tips")
+        check_commit_subject(root, spec, merge)
+        merged_paths = {name for name in git(root, "diff", "--name-only", "-z", base, merge).split("\0") if name}
+        if any(not any(covers(scope, name) for scope in spec["writes"]) for name in merged_paths):
+            raise GuardError("merge changed a path outside declared writes")
+        evidence_commits = first_parent[1:]
+        previous = merge
+    else:
+        git(root, "merge-base", "--is-ancestor", base, source)
+        git(root, "merge-base", "--is-ancestor", source, head)
+        merged_paths = {name for name in git(root, "diff", "--name-only", "-z", base, source).split("\0") if name}
+        if any(not any(covers(scope, name) for scope in spec["writes"]) for name in merged_paths):
+            raise GuardError("fast-forward changed a path outside declared writes")
+        evidence_commits = git(root, "rev-list", "--first-parent", "--reverse", f"{source}..{head}").splitlines()
+        previous = source
+    if len(evidence_commits) != 1:
+        raise GuardError("merge requires one committed evidence report after integration")
+    evidence = evidence_commits[0]
+    parents = git(root, "rev-list", "--parents", "-n", "1", evidence).split()
+    if len(parents) != 2 or parents[1] != previous:
+        raise GuardError("merge evidence commit must follow the merge result directly")
+    evidence_paths = {name for name in git(root, "diff-tree", "--no-commit-id", "--name-only",
+                                           "--no-renames", "-r", "-z", evidence).split("\0") if name}
+    if not evidence_paths or any(not any(covers(scope, name) for scope in spec["deliverables"])
+                                 for name in evidence_paths):
+        raise GuardError("merge evidence commit must contain only declared deliverables")
+    check_commit_subject(root, spec, evidence)
+    for name in spec["deliverables"]:
+        if not any(covers(name, path) for path in evidence_paths):
+            raise GuardError(f"merge evidence was not committed: {name}")
+    for scope in output_scopes(spec):
+        if git(root, "status", "--porcelain=v1", "--untracked-files=all", "--", scope):
+            raise GuardError(f"merge output remains dirty: {scope}")
+    print(f"OK merge evidence {spec['source_branch']} -> {spec['target_branch']} {head[:12]}")
+
+
+def check_repository_result(root, spec):
+    action = spec.get("repository_action", "status")
+    if action == "status":
+        if git(root, "rev-parse", "HEAD") != spec["base_commit"]:
+            raise GuardError("status-only repository task changed HEAD; declare a commit action")
+    elif action == "commit":
+        check_commit_result(root, spec)
+    else:
+        check_merge_result(root, spec)
 
 
 def finish(root, task_id, failed=False):
@@ -594,11 +809,14 @@ def finish(root, task_id, failed=False):
             spec_path = root / relative_path(root, record["spec_path"])
             if not spec_path.is_file() or file_hash(spec_path) != record["spec_sha256"]:
                 raise GuardError("handoff changed during execution; finish as failed and re-dispatch")
+            check_branch_state(root, spec)
             if spec["role"] == "repository-manager":
                 check_repository_result(root, spec)
+            elif spec.get("commit_paths"):
+                check_commit_result(root, spec)
             elif git(root, "rev-parse", "HEAD") != spec["base_commit"]:
                 raise GuardError("HEAD changed during active task; finish as failed and re-dispatch")
-            if (spec["role"] != "repository-manager" or spec.get("repository_action", "status") == "status") and (
+            if (not spec.get("commit_paths") and spec.get("repository_action", "status") == "status") and (
                 git(root, "diff", "--cached", "--raw", "-z") != record["index_before"]
             ):
                 raise GuardError("Git index changed during non-commit task; finish as failed or restore staged state")
@@ -626,7 +844,7 @@ def finish(root, task_id, failed=False):
         record["working_before_files"] = len(before)
         record["working_before_sha256"] = digest(json.dumps(before, sort_keys=True, ensure_ascii=True).encode("utf-8"))
         record.pop("index_before", None)
-        if spec["role"] == "repository-manager":
+        if spec["role"] == "repository-manager" or spec.get("commit_paths"):
             record["result_commit"] = git(root, "rev-parse", "HEAD")
             record["repository_status"] = git(root, "status", "--short")
         target.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

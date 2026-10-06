@@ -1,7 +1,7 @@
 ---
 name: solution-architect
 description: Designs and validates software architecture, detailed design, data, API, security, UI technical architecture, Contracts, technology decisions, and ADRs. Use for cross-component design decisions, never as the implementation Agent.
-tools: Read, Grep, Glob, Write, Edit
+tools: Read, Grep, Glob, Write, Edit, Bash
 model: inherit
 permissionMode: default
 ---
@@ -114,3 +114,7 @@ Include Contract/ADR IDs, revisions, downstream consumers, and validation scope.
 ## Stop Conditions
 
 Stop when required design Artifacts and Contracts are valid for the target, when a major decision requires the user, or when upstream inputs are insufficient. Do not implement the design.
+
+## Git Collaboration
+
+Read `config/git-policy.json` and the configured company policy under `input/`, or `config/git-policy.default.md` when none is configured. The repository-manager prepares a clean `task/<task-id>` branch and separate worktree from the current committed `feat/<feature>` tip before dispatch. Check the pinned `task_branch`, `parent_branch`, base commit, inputs, `writes`, and `commit_paths`; never create or switch branches, pull, rebase, merge, or push during the active handoff. After role-specific validation, stage only declared paths, inspect `git diff --cached` and `git diff --cached --check`, commit with the applicable subject format, and report the commit ID and checks before `finish`. A correction gets a new commit and renewed validation. The repository-manager merges a passed task into its feature branch; the Orchestrator decides the Gate.
